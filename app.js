@@ -1051,14 +1051,19 @@ function renderHome() {
 
       <section class="widget" data-section="progress" aria-labelledby="home-progress-title">
         ${widgetHeadHtml({ id: 'home-progress-title', title: 'Progress', nav: 'more', tab: 'progress' })}
-        <div class="widget-progress">
-          <p class="widget-big" aria-label="${overall.pct}% complete">${overall.pct}<sup>%</sup></p>
-          <div class="widget-progress-copy">
-            <strong>${overall.done} of ${overall.total} topics</strong>
-            <span>${countLabel(state.courses.length, 'course')} in the plan</span>
+        <div class="st-mini-progress">
+          <div class="st-mini-progress-top">
+            <p class="widget-big" aria-label="${overall.pct}% complete">${overall.pct}<sup>%</sup></p>
+            <div class="st-mini-progress-copy">
+              <strong>${overall.done} of ${overall.total} topics</strong>
+              <span>${countLabel(state.courses.length, 'course')} in the plan</span>
+            </div>
+          </div>
+          <div class="st-mini-bar-row">
+            <div class="bar bar--tall" aria-hidden="true"><span class="bar-fill" style="width:${overall.pct}%"></span></div>
+            <span class="st-mini-pill">${overall.pct}%</span>
           </div>
         </div>
-        <div class="bar bar--tall" aria-hidden="true"><span class="bar-fill" style="width:${overall.pct}%"></span></div>
         <div class="widget-foot">
           <span class="widget-note">${overall.total ? `${overall.done} checked` : 'No topics yet'}</span>
           <button class="text-btn" type="button" data-action="open-more" data-tab="progress">Open progress <span aria-hidden="true">→</span></button>
@@ -1083,8 +1088,11 @@ function renderHome() {
           <div class="mini-stat"><b>${week}</b><span>This week</span></div>
           <div class="mini-stat"><b>${overall.done}</b><span>Done</span></div>
         </div>
-        <div class="mini-strip" role="img" aria-label="Topic check-ins over the last 14 days">
-          ${days.map((day) => `<span class="mini-cell${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'topic')}">${day.day}</span>`).join('')}
+        <div class="activity st-stampcard mini-stamp-strip" role="img" aria-label="Topic check-ins over the last 14 days">
+          ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'topic')}">
+            <div class="activity-cell st-stamp${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}">${day.day}</div>
+            <div class="activity-label">${day.weekday}</div>
+          </div>`).join('')}
         </div>
         <div class="widget-foot">
           <span class="widget-note">Last 14 days</span>

@@ -82,17 +82,18 @@ body[data-view="more"][data-sub="settings"],
   background: var(--sec-bg);
   color: var(--sec-ink);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
 }
 
 .row-num {
   flex: 0 0 auto;
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: .06em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -282,10 +283,10 @@ svg {
 }
 
 .brand-text small {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: .16em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-transform: uppercase;
 }
 
@@ -337,9 +338,9 @@ svg {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .06em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -368,9 +369,9 @@ svg {
 .side-date {
   margin-top: 9px;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: .12em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-transform: uppercase;
 }
 
@@ -402,7 +403,7 @@ svg {
   background: var(--sec-bg);
   color: var(--sec-ink);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: .16em;
   text-transform: uppercase;
@@ -528,7 +529,7 @@ h1 {
 .btn--sm {
   min-height: 30px;
   padding: 0 10px;
-  font-size: 11.5px;
+  font-size: 12.5px;
 }
 
 .btn--block {
@@ -570,7 +571,7 @@ h1 {
   padding: 2px 0;
   border-bottom: 1px solid transparent;
   color: var(--ink-2);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
 }
 
@@ -630,9 +631,10 @@ h1 {
 
 .section-aside {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .06em;
-  color: var(--ink-3);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .rule {
@@ -703,9 +705,10 @@ h1 {
   border-radius: var(--pill);
   background: var(--sec-bg);
   color: var(--sec-ink);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
   text-align: left;
+  font-variant-numeric: tabular-nums;
   transition: filter .15s var(--ease);
 }
 
@@ -786,7 +789,7 @@ h1 {
 
 .widget .text-btn {
   color: var(--sec-ink);
-  font-size: 10.5px;
+  font-size: 12.5px;
   white-space: nowrap;
 }
 
@@ -795,55 +798,108 @@ h1 {
   color: var(--sec-ink);
 }
 
-.widget-progress {
+/* Progress widget: a mini matcha die-cut sticker inside the card. */
+.st-mini-progress {
+  position: relative;
+  margin: 2px 0 14px;
+  padding: 16px 16px 15px;
+  border-radius: 18px 14px 17px 15px;
+  background: var(--matcha);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    inset 0 -4px 0 rgba(74, 107, 58, .1),
+    0 12px 20px -17px rgba(58, 84, 44, .6);
+  transform: rotate(-.6deg);
+}
+
+.st-mini-progress-top {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 13px;
 }
 
 .widget-big {
-  color: var(--sec-ink);
+  color: var(--matcha-ink);
   font-family: var(--serif);
-  font-size: clamp(46px, 6vw, 58px);
-  font-weight: 400;
-  line-height: .86;
+  font-size: clamp(48px, 6vw, 60px);
+  font-weight: 500;
+  line-height: .84;
   letter-spacing: -.05em;
   font-variant-numeric: lining-nums tabular-nums;
 }
 
 .widget-big sup {
   font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: 0;
   vertical-align: 24px;
 }
 
-.widget-progress-copy {
-  font-size: 10.5px;
-  line-height: 1.5;
-  color: var(--ink-2);
+.st-mini-progress-copy {
+  padding-bottom: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #34472B;
   text-align: right;
 }
 
-.widget-progress-copy strong {
+.st-mini-progress-copy strong {
   display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #26381F;
+  font-variant-numeric: tabular-nums;
 }
 
-.widget-progress-copy span {
+.st-mini-progress-copy span {
   display: block;
+  margin-top: 2px;
   font-family: var(--mono);
-  font-size: 8.5px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: #3B4F31;
+  font-variant-numeric: tabular-nums;
+}
+
+.st-mini-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.st-mini-bar-row .bar {
+  flex: 1;
+  height: 11px;
+  border-radius: var(--pill);
+  background: #F0F8E9;
+  box-shadow: inset 0 0 0 1px rgba(74, 107, 58, .24);
+}
+
+.st-mini-bar-row .bar-fill {
+  border-radius: var(--pill);
+  background: var(--matcha-ink);
+  box-shadow: inset 0 0 0 2px rgba(252, 251, 248, .38);
+}
+
+.st-mini-pill {
+  flex: 0 0 auto;
+  padding: 3px 10px 2px;
+  border-radius: var(--pill);
+  background: #F7FBF2;
+  color: var(--matcha-ink);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 1px rgba(74, 107, 58, .42);
+  white-space: nowrap;
 }
 
 .bar--tall {
-  height: 6px;
+  height: 11px;
 }
 
 .widget .bar {
@@ -854,67 +910,89 @@ h1 {
   background: var(--sec-ink);
 }
 
+/* Analytics widget: three mini fuji stickers over a mini stamp strip. */
 .mini-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 2px 0 14px;
 }
 
 .mini-stat {
-  padding: 10px 12px 11px;
-  border-radius: 12px;
-  background: var(--sec-bg);
+  min-width: 0;
+  padding: 13px 12px 12px;
+  border-radius: 15px 11px 14px 12px;
+  background: var(--fuji);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    inset 0 -4px 0 rgba(90, 78, 134, .1),
+    0 10px 16px -14px rgba(90, 78, 134, .6);
+  transform: rotate(-2deg);
+}
+
+.mini-stat:nth-child(2) {
+  border-radius: 11px 15px 12px 14px;
+  transform: rotate(1.4deg);
+}
+
+.mini-stat:nth-child(3) {
+  border-radius: 13px 12px 16px 11px;
+  transform: rotate(-1deg);
 }
 
 .mini-stat b {
   display: block;
+  color: var(--fuji-ink);
   font-family: var(--serif);
-  font-size: 25px;
-  font-weight: 500;
+  font-size: 28px;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -.03em;
-  color: var(--sec-ink);
   font-variant-numeric: lining-nums tabular-nums;
 }
 
 .mini-stat span {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
+  color: var(--fuji-ink);
   font-family: var(--mono);
-  font-size: 7.5px;
-  letter-spacing: .07em;
-  color: var(--sec-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: .04em;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
-.mini-strip {
-  display: grid;
-  grid-template-columns: repeat(14, 1fr);
+/* Reuse the full-view stamp language at widget scale. */
+.mini-stamp-strip {
+  grid-template-columns: repeat(14, minmax(26px, 1fr));
   gap: 3px;
+  margin: 0;
+  padding: 10px 9px 9px;
+  border-radius: 15px 11px 14px 12px;
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    0 10px 18px -18px rgba(90, 78, 134, .6);
 }
 
-.mini-cell {
-  display: grid;
-  place-items: center;
-  height: 25px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--paper);
-  font-family: var(--mono);
-  font-size: 7.5px;
-  color: var(--ink-3);
+.mini-stamp-strip .activity-cell {
+  min-width: 26px;
+  height: 30px;
+  border-width: 1.5px;
+  font-size: 11.5px;
 }
 
-.mini-cell.has {
-  border-color: transparent;
-  background: var(--sec-bg);
-  color: var(--sec-ink);
-  font-weight: 600;
+.mini-stamp-strip .activity-cell::before,
+.mini-stamp-strip .activity-cell.has::after {
+  inset: 2px;
 }
 
-.mini-cell.is-today {
-  box-shadow: inset 0 0 0 1px var(--ink);
+.mini-stamp-strip .activity-label {
+  margin-top: 4px;
+  color: var(--fuji-ink);
+  font-size: 11px;
+  line-height: 1;
 }
 
 .widget-list {
@@ -959,10 +1037,11 @@ h1 {
   margin-top: 1px;
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 8.5px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .count-pill {
@@ -972,22 +1051,24 @@ h1 {
   background: var(--sec-bg);
   color: var(--sec-ink);
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: .02em;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .widget-block-time {
   flex: 0 0 46px;
   padding-top: 1px;
   font-family: var(--mono);
-  font-size: 8.5px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .widget-block.is-done .widget-block-title {
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
@@ -1011,9 +1092,10 @@ h1 {
 
 .widget-note {
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: .04em;
-  color: var(--ink-3);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .widget-empty {
@@ -1026,7 +1108,7 @@ h1 {
 .mini-cal-month {
   margin-bottom: 8px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: .1em;
   color: var(--ink-2);
@@ -1042,7 +1124,7 @@ h1 {
 .mini-cal-wd {
   padding-bottom: 1px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: .05em;
   color: var(--ink-2);
@@ -1123,10 +1205,11 @@ h1 {
   padding-top: 12px;
   border-top: 1px solid var(--line);
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 11px;
   letter-spacing: .08em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Today ---------- */
@@ -1153,9 +1236,10 @@ h1 {
   gap: 6px 18px;
   margin-top: 18px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .05em;
-  color: var(--ink-3);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .today-meta b {
@@ -1200,7 +1284,7 @@ h1 {
 
 .hanko-kicker {
   font-family: var(--serif);
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: .18em;
   line-height: 1;
@@ -1219,7 +1303,7 @@ h1 {
 .hanko-unit {
   margin-top: 2px;
   font-family: var(--serif);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .12em;
   line-height: 1;
 }
@@ -1231,7 +1315,8 @@ h1 {
 }
 
 .hanko--sm .hanko-kicker {
-  font-size: 7.5px;
+  font-size: 11px;
+  letter-spacing: .02em;
 }
 
 .hanko--sm .hanko-number {
@@ -1239,7 +1324,7 @@ h1 {
 }
 
 .hanko--sm .hanko-unit {
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .hanko--none {
@@ -1254,7 +1339,7 @@ h1 {
 .hanko-caption {
   max-width: 170px;
   text-align: center;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.5;
   color: var(--ink-2);
 }
@@ -1270,9 +1355,10 @@ h1 {
 
 .hanko-caption span {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: .04em;
-  color: var(--ink-3);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Schedule rows ---------- */
@@ -1302,18 +1388,18 @@ h1 {
   flex: 0 0 88px;
   padding-top: 3px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: -.02em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .block-time .dur {
   display: block;
   margin-top: 2px;
-  font-size: 8.5px;
-  color: var(--ink-3);
-  opacity: .75;
+  font-size: 11px;
+  color: var(--ink-2);
 }
 
 .block-main {
@@ -1332,18 +1418,18 @@ h1 {
 .block-course {
   margin-top: 2px;
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--ink-2);
   overflow-wrap: anywhere;
 }
 
 .schedule-row.is-done .block-title {
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
 
 .schedule-row.is-done .block-course {
-  opacity: .7;
+  color: var(--ink-2);
 }
 
 .row-actions {
@@ -1477,13 +1563,13 @@ h1 {
   display: grid;
   place-items: center;
   min-width: 17px;
-  height: 17px;
+  height: 19px;
   padding: 0 4px;
   border: 1px solid rgba(122, 100, 32, .45);
   border-radius: var(--pill);
   background: #FFFCF0;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -1545,12 +1631,11 @@ h1 {
   display: block;
   margin-bottom: 3px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
   line-height: 1.2;
   white-space: nowrap;
-  opacity: .85;
 }
 
 .t-block strong {
@@ -1565,9 +1650,8 @@ h1 {
 .t-block small {
   display: block;
   margin-top: 3px;
-  font-size: 10px;
-  line-height: 1.25;
-  opacity: .8;
+  font-size: 11px;
+  line-height: 1.3;
   overflow-wrap: break-word;
 }
 
@@ -1620,7 +1704,7 @@ h1 {
   font-size: 11.5px;
   font-style: italic;
   line-height: 1.5;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* ---------- Courses ---------- */
@@ -1679,7 +1763,7 @@ h1 {
   border-radius: var(--pill);
   background: var(--wash);
   color: var(--ink-2);
-  font-size: 9px;
+  font-size: 11px;
   vertical-align: 3px;
 }
 
@@ -1690,7 +1774,7 @@ h1 {
   gap: 5px 14px;
   margin-top: 7px;
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .exam-chip {
@@ -1702,9 +1786,10 @@ h1 {
   border-radius: var(--pill);
   background: var(--shu-wash);
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: .03em;
   color: var(--shu-dark);
+  font-variant-numeric: tabular-nums;
 }
 
 .exam-chip::before {
@@ -1729,8 +1814,9 @@ h1 {
   border-radius: var(--pill);
   background: var(--sakura);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--sakura-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .bar {
@@ -1811,17 +1897,19 @@ h1 {
 .module-count {
   flex: 0 0 auto;
   font-family: var(--mono);
-  font-size: 9px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .module-pct {
   flex: 0 0 auto;
-  min-width: 34px;
+  min-width: 38px;
   font-family: var(--mono);
-  font-size: 9px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .module-actions {
@@ -1875,12 +1963,13 @@ h1 {
 .topic-meta {
   margin-top: 1px;
   font-family: var(--mono);
-  font-size: 8.5px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .topic.is-done .topic-title {
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-decoration: line-through;
 }
 
@@ -1915,8 +2004,8 @@ h1 {
   align-items: center;
   gap: 6px;
   padding: 8px 20px 12px 34px;
-  color: var(--ink-3);
-  font-size: 11.5px;
+  color: var(--ink-2);
+  font-size: 12.5px;
 }
 
 .add-row:hover {
@@ -1988,7 +2077,7 @@ h1 {
   border-radius: 999px;
   background: rgba(255, 255, 255, .42);
   color: var(--sakura-ink);
-  font-size: 8px;
+  font-size: 11px;
   vertical-align: 0;
 }
 
@@ -2033,7 +2122,7 @@ h1 {
 
 .cf-folder-count {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .02em;
   font-variant-numeric: tabular-nums;
 }
@@ -2090,11 +2179,12 @@ h1 {
   box-shadow: inset 0 0 0 1px rgba(199, 62, 58, .35);
   color: var(--shu-dark);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: .04em;
   text-transform: uppercase;
   transform: rotate(-1.6deg);
+  font-variant-numeric: tabular-nums;
 }
 
 .course .exam-chip::before {
@@ -2183,7 +2273,7 @@ h1 {
 .course .module-title {
   overflow: hidden;
   color: var(--sakura-ink);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: .01em;
   text-overflow: ellipsis;
@@ -2194,9 +2284,8 @@ h1 {
   flex: 0 0 auto;
   color: var(--sakura-ink);
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  opacity: .78;
 }
 
 .course .module-head {
@@ -2212,9 +2301,9 @@ h1 {
 .course .module-head::before {
   content: "Topics";
   margin-right: auto;
-  color: rgba(138, 74, 94, .62);
+  color: var(--sakura-ink);
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -2223,7 +2312,7 @@ h1 {
 .course .module-pct {
   color: var(--sakura-ink);
   font-family: var(--sans);
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -2275,8 +2364,9 @@ h1 {
 }
 
 .course .topic-meta {
-  color: rgba(138, 74, 94, .8);
+  color: var(--sakura-ink);
   letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .course .topic.is-done .topic-title {
@@ -2354,7 +2444,7 @@ h1 {
   border-radius: 9px;
   background: rgba(255, 255, 255, .28);
   color: var(--sakura-ink);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 500;
   letter-spacing: .01em;
 }
@@ -2390,7 +2480,7 @@ h1 {
   background: #FDE7EE;
   color: var(--sakura-ink);
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: .01em;
   font-variant-numeric: tabular-nums;
   transform: rotate(-.4deg);
@@ -2549,10 +2639,10 @@ h1 {
   display: block;
   margin-bottom: 4px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 400;
   letter-spacing: .14em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-transform: uppercase;
 }
 
@@ -2743,10 +2833,11 @@ h1 {
 .cal-detail-head p {
   margin-top: 4px;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: .08em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
 .cal-detail-body {
@@ -2802,8 +2893,9 @@ h1 {
 .exam-sub {
   margin-top: 1px;
   font-family: var(--mono);
-  font-size: 9px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- More / Progress / Analytics / Settings ---------- */
@@ -2823,7 +2915,7 @@ h1 {
   padding: 0 16px;
   border-radius: var(--pill);
   color: var(--ink-2);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
   transition: background .12s, color .12s;
 }
@@ -2973,8 +3065,9 @@ h1 {
 .progress-course-name span {
   flex: 0 0 auto;
   font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Sticker bar: solid matcha ink, rounded ends, a thin paper rim. */
@@ -3073,6 +3166,7 @@ h1 {
   line-height: 1.45;
   letter-spacing: 0;
   color: #6B655B;
+  font-variant-numeric: tabular-nums;
 }
 
 .exam-card-copy .overdue {
@@ -3142,7 +3236,7 @@ h1 {
   font-family: var(--sans);
   font-size: 13px;
   line-height: 1.35;
-  color: rgba(90, 78, 134, .8);
+  color: var(--fuji-ink);
 }
 
 /* Stamp card: one inked rubber stamp per day, irregular rims by position. */
@@ -3256,7 +3350,7 @@ h1 {
 .settings-note code,
 .settings-card code {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--ink-2);
 }
 
@@ -3269,7 +3363,7 @@ h1 {
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1;
-  color: #6F6790;
+  color: var(--fuji-ink);
 }
 
 .activity-legend {
@@ -3278,7 +3372,7 @@ h1 {
   gap: 12px;
   margin-top: 12px;
   font-size: 13px;
-  color: #5F577F;
+  color: var(--fuji-ink);
 }
 
 .subject-list {
@@ -3539,7 +3633,7 @@ h1 {
 }
 
 .field label {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: .09em;
   color: var(--ink-2);
@@ -3574,14 +3668,14 @@ h1 {
 }
 
 .field input::placeholder {
-  color: var(--ink-3);
-  opacity: .8;
+  color: var(--ink-2);
+  opacity: 1;
 }
 
 .field-hint {
-  font-size: 10px;
+  font-size: 11.5px;
   line-height: 1.5;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .field-row {
@@ -3608,7 +3702,7 @@ h1 {
   border-radius: var(--r-sm);
   background: var(--card);
   color: var(--ink-2);
-  font-size: 9.5px;
+  font-size: 12.5px;
   letter-spacing: .06em;
   text-transform: uppercase;
 }
@@ -3679,16 +3773,17 @@ h1 {
   display: block;
   margin-top: 4px;
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 11px;
   letter-spacing: .03em;
-  color: var(--ink-3);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .settings-note {
   margin-top: 14px;
-  font-size: 10.5px;
+  font-size: 11.5px;
   line-height: 1.6;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .danger-zone {
@@ -3813,8 +3908,8 @@ h1 {
   border-left: 2px solid var(--shu);
   border-radius: var(--r-sm);
   background: var(--shu-wash);
-  font-size: 11.5px;
-  color: var(--shu);
+  font-size: 12px;
+  color: var(--shu-dark);
 }
 
 .quick-date {
@@ -3831,7 +3926,7 @@ h1 {
   border-radius: var(--pill);
   background: var(--paper);
   color: var(--ink-2);
-  font-size: 10px;
+  font-size: 12.5px;
 }
 
 .chip:hover {
@@ -3961,7 +4056,7 @@ h1 {
   }
 
   .save-state--compact {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .main {
@@ -3996,10 +4091,10 @@ h1 {
     gap: 4px;
     min-height: 54px;
     padding: 7px 1px 5px;
-    color: var(--ink-3);
-    font-size: 7.5px;
+    color: var(--ink-2);
+    font-size: 12.5px;
     font-weight: 500;
-    letter-spacing: .01em;
+    letter-spacing: 0;
     white-space: nowrap;
     transition: color .12s;
   }
@@ -4069,12 +4164,13 @@ h1 {
   }
 
   .hanko-kicker {
-    font-size: 8px;
+    font-size: 11px;
+    letter-spacing: .04em;
   }
 
   .hanko-caption {
     max-width: 120px;
-    font-size: 9.5px;
+    font-size: 11px;
   }
 
   .week-scroll {
@@ -4294,17 +4390,8 @@ h1 {
     max-width: none;
   }
 
-  .mini-strip {
-    gap: 2px;
-  }
-
-  .mini-cell {
-    height: 23px;
-    font-size: 7px;
-  }
-
   .mini-stat b {
-    font-size: 22px;
+    font-size: 28px;
   }
 
   .today-hero {
@@ -4337,7 +4424,7 @@ h1 {
   }
 
   .stat-label {
-    font-size: 8.5px;
+    font-size: 11px;
   }
 
   .stat-note {
@@ -4367,7 +4454,7 @@ h1 {
 
   .block-time {
     flex-basis: 74px;
-    font-size: 9.5px;
+    font-size: 11px;
   }
 
   .cal-detail-head {
@@ -4388,12 +4475,12 @@ h1 {
   }
 
   .activity-cell {
-    height: 25px;
-    font-size: 7.5px;
+    height: 30px;
+    font-size: 11.5px;
   }
 
   .activity-label {
-    font-size: 6.5px;
+    font-size: 11px;
   }
 
   .settings-card-head {
@@ -4446,7 +4533,7 @@ h1 {
   }
 
   .tab {
-    font-size: 7px;
+    font-size: 12.5px;
   }
 }
 
@@ -4594,7 +4681,7 @@ h1 {
 }
 
 .cal-day.is-outside .cal-num {
-  opacity: .72;
+  opacity: .88;
 }
 
 .cal-day.is-selected {
@@ -4948,19 +5035,17 @@ h1 {
 }
 
 .view[data-view="today"] .schedule-row.is-done .block-title {
-  color: #9A7247;
-  opacity: .82;
+  color: var(--momo-ink);
 }
 
 .view[data-view="today"] .schedule-row.is-done .block-course,
 .view[data-view="today"] .schedule-row.is-done .block-time {
-  opacity: .62;
+  color: var(--momo-ink);
 }
 
 .view[data-view="today"] .block-time,
 .view[data-view="today"] .block-course {
   color: var(--momo-ink);
-  opacity: .8;
 }
 
 .view[data-view="today"] .row-actions .icon-btn {
@@ -5075,7 +5160,6 @@ h1 {
 .widget[data-section="today"] .widget-block-time,
 .widget[data-section="today"] .widget-block-course {
   color: var(--momo-ink);
-  opacity: .8;
 }
 
 .widget[data-section="today"] .widget-block.is-done {
@@ -5088,18 +5172,18 @@ h1 {
 }
 
 .widget[data-section="today"] .widget-block.is-done .widget-block-title {
-  color: #9A7247;
+  color: var(--momo-ink);
 }
 
 .widget[data-section="today"] .mini-done {
   display: grid;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 19px;
+  height: 19px;
   border: 1.5px solid var(--momo-ink);
   border-radius: 47% 53% 49% 51% / 52% 48% 52% 48%;
   color: var(--momo-ink);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1;
   transform: rotate(-3deg);
 }
@@ -5173,5 +5257,138 @@ h1 {
   .cal-day.is-exam .cal-num,
   .cal-day.is-exam .cal-num::after {
     transform: none;
+  }
+}
+
+/* ============================================================
+   Home widgets — final sticker + stamp cascade layer
+   Progress: matcha die-cut card. Analytics: fuji sticker stats
+   and the full-view stamp language, scaled down.
+   ============================================================ */
+
+.widget[data-section="progress"] .st-mini-progress {
+  margin: 2px 0 14px;
+  padding: 16px 16px 15px;
+  border-radius: 18px 14px 17px 15px;
+  background: var(--matcha);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    inset 0 -4px 0 rgba(74, 107, 58, .1),
+    0 12px 20px -17px rgba(58, 84, 44, .6);
+  transform: rotate(-.6deg);
+}
+
+/* The small posted-stamp ring is too narrow for wide tracking at 11px. */
+.exam-card .hanko--sm .hanko-kicker {
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.widget[data-section="progress"] .st-mini-bar-row .bar {
+  flex: 1;
+  height: 11px;
+  border-radius: var(--pill);
+  background: #F0F8E9;
+  box-shadow: inset 0 0 0 1px rgba(74, 107, 58, .24);
+}
+
+.widget[data-section="progress"] .st-mini-bar-row .bar-fill {
+  border-radius: var(--pill);
+  background: var(--matcha-ink);
+  box-shadow: inset 0 0 0 2px rgba(252, 251, 248, .38);
+}
+
+.widget[data-section="analytics"] .mini-stat {
+  background: var(--fuji);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    inset 0 -4px 0 rgba(90, 78, 134, .1),
+    0 10px 16px -14px rgba(90, 78, 134, .6);
+}
+
+.widget[data-section="analytics"] .mini-stat b {
+  color: var(--fuji-ink);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.widget[data-section="analytics"] .mini-stat span {
+  color: var(--fuji-ink);
+  font-size: 13px;
+}
+
+.widget[data-section="analytics"] .mini-stamp-strip {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(26px, 1fr));
+  gap: 3px;
+  margin: 0;
+  padding: 10px 9px 9px;
+  border: 1px solid rgba(90, 78, 134, .22);
+  border-radius: 15px 11px 14px 12px;
+  background: var(--card);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    0 10px 18px -18px rgba(90, 78, 134, .6);
+}
+
+.widget[data-section="analytics"] .mini-stamp-strip .activity-cell {
+  min-width: 26px;
+  height: 30px;
+  border-width: 1.5px;
+  font-size: 11.5px;
+}
+
+.widget[data-section="analytics"] .mini-stamp-strip .activity-cell::before,
+.widget[data-section="analytics"] .mini-stamp-strip .activity-cell.has::after {
+  inset: 2px;
+}
+
+.widget[data-section="analytics"] .mini-stamp-strip .activity-label {
+  margin-top: 4px;
+  color: var(--fuji-ink);
+  font-size: 11px;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .widget[data-section="analytics"] .mini-stamp-strip {
+    grid-template-columns: repeat(7, minmax(26px, 1fr));
+    gap: 5px 4px;
+  }
+
+  .widget[data-section="analytics"] .mini-stamp-strip .activity-cell {
+    height: 30px;
+    font-size: 11.5px;
+  }
+
+  .widget[data-section="analytics"] .mini-stamp-strip .activity-label {
+    font-size: 11px;
+  }
+
+  .widget[data-section="progress"] .st-mini-progress {
+    padding: 15px 14px 14px;
+    transform: none;
+  }
+
+  .widget[data-section="analytics"] .mini-stat,
+  .widget[data-section="analytics"] .mini-stat:nth-child(2),
+  .widget[data-section="analytics"] .mini-stat:nth-child(3) {
+    transform: none;
+  }
+
+  /* Keep long names whole: wrap onto two lines instead of clipping. */
+  .hanko-caption strong {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.35;
+  }
+
+  .subject-list .subject-name {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.3;
   }
 }
