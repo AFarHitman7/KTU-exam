@@ -1032,7 +1032,7 @@ function renderHome() {
       <section class="widget" data-section="calendar" aria-labelledby="home-calendar-title">
         ${widgetHeadHtml({ id: 'home-calendar-title', title: 'Calendar', nav: 'calendar' })}
         <div class="mini-cal-page">
-          ${spiralBindingHtml(11)}
+          ${spiralBindingHtml(5)}
           <p class="mini-cal-month">${esc(formatMonthYear(now))}</p>
           <div class="mini-cal-grid">
             ${DAYS.map((day) => `<span class="mini-cal-wd" aria-hidden="true">${day.slice(0, 1)}</span>`).join('')}
@@ -1346,6 +1346,7 @@ function renderCalendar() {
     const aria = `${formatLongDate(iso)}${blocks.length ? `, ${countLabel(blocks.length, 'study block')}` : ''}${exams.length ? `, ${exams.map((exam) => `${exam.title} exam`).join(', ')}` : ''}`;
     cells.push(`<button class="${classes}" type="button" data-action="select-day" data-date="${iso}" data-focus="cal-${iso}" aria-label="${esc(aria)}">
       <span class="cal-num">${date.getDate()}</span>
+      ${iso === ui.selectedDate ? `<svg class="cal-clip" viewBox="0 0 14 28" width="14" height="28" aria-hidden="true" focusable="false"><path d="M5.5 11.5V21.5A3.5 3.5 0 0 0 12.5 21.5V8A5.5 5.5 0 0 0 1.5 8V16A3.5 3.5 0 0 0 8.5 16V11.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
       ${exams[0] ? `<span class="cal-exam-label">${esc(exams[0].title)}</span>` : ''}
       <span class="cal-marks" aria-hidden="true">
         ${blocks.length ? '<span class="cal-dot"></span>' : ''}
@@ -1380,7 +1381,7 @@ function renderCalendar() {
     </div>
 
     <div class="calendar">
-      ${spiralBindingHtml(14)}
+      ${spiralBindingHtml(7)}
       <div class="cal-weekdays" aria-hidden="true">
         ${DAYS.map((day) => `<span class="cal-weekday">${day}</span>`).join('')}
       </div>

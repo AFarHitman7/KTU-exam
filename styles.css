@@ -1026,9 +1026,10 @@ h1 {
 .mini-cal-month {
   margin-bottom: 8px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
+  font-weight: 600;
   letter-spacing: .1em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-transform: uppercase;
 }
 
@@ -1041,9 +1042,10 @@ h1 {
 .mini-cal-wd {
   padding-bottom: 1px;
   font-family: var(--mono);
-  font-size: 7.5px;
+  font-size: 10px;
+  font-weight: 600;
   letter-spacing: .05em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-align: center;
 }
 
@@ -1078,8 +1080,9 @@ h1 {
 
 .mini-cal-num {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 12.5px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-2);
 }
 
@@ -1881,12 +1884,13 @@ h1 {
 }
 
 .cal-weekday {
-  padding: 8px 4px;
+  padding: 9px 4px;
   border-right: 1px solid var(--line);
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: .1em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-align: center;
   text-transform: uppercase;
 }
@@ -1941,11 +1945,12 @@ h1 {
 .cal-num {
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
+  width: 26px;
+  height: 26px;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 14px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
   border-radius: 50%;
 }
 
@@ -1982,7 +1987,8 @@ h1 {
   max-width: 100%;
   overflow: hidden;
   color: var(--shu-dark);
-  font-size: 8.5px;
+  font-size: 11px;
+  font-weight: 500;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1993,8 +1999,8 @@ h1 {
   flex-wrap: wrap;
   gap: 8px 18px;
   margin-top: 11px;
-  font-size: 10.5px;
-  color: var(--ink-3);
+  font-size: 11px;
+  color: var(--ink-2);
 }
 
 .cal-legend span {
@@ -3136,14 +3142,14 @@ h1 {
   }
 
   .cal-num {
-    width: 21px;
-    height: 21px;
-    font-size: 10.5px;
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
   }
 
   .cal-day.is-exam .cal-num {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
 
   .cal-exam-label {
@@ -3333,7 +3339,7 @@ h1 {
   }
 
   .cal-weekday {
-    font-size: 7.5px;
+    font-size: 11px;
     letter-spacing: .06em;
   }
 
@@ -3394,9 +3400,9 @@ h1 {
   }
 
   .cal-num {
-    width: 19px;
-    height: 19px;
-    font-size: 9.5px;
+    width: 22px;
+    height: 22px;
+    font-size: 12.5px;
   }
 
   .tab {
@@ -3410,68 +3416,95 @@ h1 {
    paper-clipped corners and sticky notes. Solid fills only.
    ============================================================ */
 
-/* ---------- Spiral binding ---------- */
+/* ---------- Spiral binding ----------
+   A solid gutter with one punched hole per column. Each ring is a full
+   wire loop centred slightly below its hole, so it passes behind the hole
+   and crosses the gutter's lower edge onto the page: connected, not floating. */
 
 .spiral {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-evenly;
-  height: 24px;
-  padding: 4px 12px 0;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  height: 28px;
+  padding: 0;
+  background: #A9CFE2;
+  border-bottom: 1px solid rgba(47, 93, 117, .3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .45),
+    inset 0 -9px 0 rgba(47, 93, 117, .05);
   pointer-events: none;
 }
 
 .spiral i {
   position: relative;
   display: block;
-  flex: 0 0 auto;
-  width: 12px;
-  height: 18px;
-  border: 1.5px solid #9A958A;
-  border-bottom-color: transparent;
-  border-radius: 7px 7px 5px 5px;
-  transform: rotate(-2deg);
+  width: auto;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  transform: none;
 }
 
-.spiral i:nth-child(even) {
-  height: 19px;
-  border-color: #A7A296;
-  border-bottom-color: transparent;
-  transform: rotate(1.5deg) translateY(1px);
-}
-
+/* The wire loop: 30px diameter, 2.75px stroke, dipping 6px onto the page. */
 .spiral i::after {
   content: "";
   position: absolute;
+  top: 4px;
   left: 50%;
-  bottom: -4px;
-  width: 4px;
-  height: 4px;
-  margin-left: -2px;
+  z-index: 1;
+  width: 30px;
+  height: 30px;
+  margin-left: -15px;
+  border: 2.75px solid #4E6A77;
   border-radius: 50%;
-  background: rgba(47, 93, 117, .28);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22);
 }
 
+/* The punched hole is painted above the wire, so the ring reads as threaded. */
+.spiral i::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 2;
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  border-radius: 50%;
+  background: #F2FAFD;
+  box-shadow:
+    inset 0 2px 2px rgba(23, 54, 70, .5),
+    inset 0 -1px 1px rgba(255, 255, 255, .9);
+}
+
+/* Home mini pad: five larger rings instead of seven small ones. */
 .mini-cal-page .spiral {
-  height: 18px;
-  padding: 2px 8px 0;
+  grid-template-columns: repeat(5, 1fr);
+  height: 24px;
+  padding: 0;
+  border-radius: 3px 3px 0 0;
 }
 
 .mini-cal-page .spiral i {
-  width: 9px;
-  height: 13px;
-  border-width: 1px;
-}
-
-.mini-cal-page .spiral i:nth-child(even) {
-  height: 14px;
+  width: auto;
+  height: 100%;
+  border: 0;
 }
 
 .mini-cal-page .spiral i::after {
-  bottom: -3px;
-  width: 3px;
-  height: 3px;
-  margin-left: -1.5px;
+  top: 3px;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  border-width: 2.5px;
+}
+
+.mini-cal-page .spiral i::before {
+  top: 6.5px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
 }
 
 /* ---------- Calendar page ---------- */
@@ -3521,7 +3554,7 @@ h1 {
 }
 
 .cal-day.is-outside .cal-num {
-  opacity: .5;
+  opacity: .72;
 }
 
 .cal-day.is-selected {
@@ -3542,18 +3575,14 @@ h1 {
   pointer-events: none;
 }
 
-.cal-day.is-selected::after {
-  content: "";
+/* Inline paperclip: fully inside the selected cell, never clipped. */
+.cal-clip {
   position: absolute;
-  top: -3px;
-  right: 10px;
-  width: 7px;
-  height: 18px;
-  border: 1.5px solid var(--mizu-ink);
-  border-bottom-color: transparent;
-  border-radius: 5px;
-  transform: rotate(-2deg);
-  opacity: .72;
+  top: 6px;
+  right: 6px;
+  width: 14px;
+  height: 28px;
+  color: var(--mizu-ink);
   pointer-events: none;
 }
 
@@ -3686,8 +3715,8 @@ h1 {
   position: relative;
   display: grid;
   place-items: center;
-  width: 19px;
-  height: 19px;
+  width: 21px;
+  height: 21px;
   border: 1.5px solid var(--shu);
   border-radius: 46% 54% 48% 52% / 53% 46% 54% 47%;
   color: var(--shu-dark);
@@ -4043,17 +4072,24 @@ h1 {
 
 @media (max-width: 820px) {
   .cal-day.is-exam .cal-num {
-    width: 25px;
-    height: 25px;
-    font-size: 10px;
+    width: 27px;
+    height: 27px;
+    font-size: 13px;
   }
 }
 
 @media (max-width: 600px) {
   .cal-day.is-exam .cal-num {
-    width: 24px;
+    width: 25px;
+    height: 25px;
+    font-size: 12.5px;
+  }
+
+  .cal-clip {
+    top: 4px;
+    right: 4px;
+    width: 12px;
     height: 24px;
-    font-size: 9.5px;
   }
 
   .view[data-view="today"] .schedule-row,
