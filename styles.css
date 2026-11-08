@@ -3403,3 +3403,699 @@ h1 {
     font-size: 7px;
   }
 }
+
+/* ============================================================
+   Stationery art — Phase 1 (Calendar + Today)
+   Spiral binding, stamped exam rings, washi tape marks,
+   paper-clipped corners and sticky notes. Solid fills only.
+   ============================================================ */
+
+/* ---------- Spiral binding ---------- */
+
+.spiral {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-evenly;
+  height: 24px;
+  padding: 4px 12px 0;
+  pointer-events: none;
+}
+
+.spiral i {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 18px;
+  border: 1.5px solid #9A958A;
+  border-bottom-color: transparent;
+  border-radius: 7px 7px 5px 5px;
+  transform: rotate(-2deg);
+}
+
+.spiral i:nth-child(even) {
+  height: 19px;
+  border-color: #A7A296;
+  border-bottom-color: transparent;
+  transform: rotate(1.5deg) translateY(1px);
+}
+
+.spiral i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: rgba(47, 93, 117, .28);
+}
+
+.mini-cal-page .spiral {
+  height: 18px;
+  padding: 2px 8px 0;
+}
+
+.mini-cal-page .spiral i {
+  width: 9px;
+  height: 13px;
+  border-width: 1px;
+}
+
+.mini-cal-page .spiral i:nth-child(even) {
+  height: 14px;
+}
+
+.mini-cal-page .spiral i::after {
+  bottom: -3px;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+}
+
+/* ---------- Calendar page ---------- */
+
+.calendar {
+  position: relative;
+  border-color: rgba(47, 93, 117, .28);
+  border-radius: 5px 5px 16px 16px;
+  background: #EDF7FB;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .7),
+    0 14px 28px -24px rgba(26, 26, 26, .5);
+}
+
+.cal-weekdays {
+  border-bottom-color: rgba(47, 93, 117, .22);
+  background: rgba(47, 93, 117, .07);
+}
+
+.cal-weekday {
+  border-right-color: rgba(47, 93, 117, .14);
+  color: var(--mizu-ink);
+  letter-spacing: .14em;
+}
+
+.cal-day {
+  border-right-color: rgba(47, 93, 117, .16);
+  border-bottom-color: rgba(47, 93, 117, .16);
+  border-radius: 0;
+}
+
+.cal-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.cal-day:nth-last-child(-n+7) {
+  border-bottom: 0;
+}
+
+.cal-day:hover {
+  background: rgba(47, 93, 117, .07);
+}
+
+.cal-day.is-outside {
+  background: rgba(250, 249, 246, .42);
+  color: var(--mizu-ink);
+}
+
+.cal-day.is-outside .cal-num {
+  opacity: .5;
+}
+
+.cal-day.is-selected {
+  background: rgba(47, 93, 117, .1);
+  box-shadow: none;
+}
+
+.cal-day.is-today::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-bottom: 9px solid var(--mizu-ink);
+  border-left: 9px solid transparent;
+  opacity: .7;
+  pointer-events: none;
+}
+
+.cal-day.is-selected::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: 10px;
+  width: 7px;
+  height: 18px;
+  border: 1.5px solid var(--mizu-ink);
+  border-bottom-color: transparent;
+  border-radius: 5px;
+  transform: rotate(-2deg);
+  opacity: .72;
+  pointer-events: none;
+}
+
+.cal-day.is-today:not(.is-exam) .cal-num {
+  border: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.cal-day.is-exam .cal-num {
+  position: relative;
+  width: 31px;
+  height: 31px;
+  border: 2px solid var(--shu);
+  border-radius: 46% 54% 48% 52% / 53% 46% 54% 47%;
+  background: transparent;
+  color: var(--shu-dark);
+  font-weight: 600;
+  transform: rotate(-2deg);
+}
+
+.cal-day.is-exam .cal-num::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1px solid var(--shu);
+  border-radius: 53% 47% 52% 48% / 47% 53% 46% 54%;
+  opacity: .6;
+  transform: rotate(1.5deg);
+  pointer-events: none;
+}
+
+.cal-day.is-exam:not(.is-selected) {
+  background: transparent;
+}
+
+.cal-dot {
+  width: 13px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--mizu-ink);
+  opacity: .78;
+  transform: rotate(-7deg);
+}
+
+.cal-dot--exam {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--shu);
+  opacity: 1;
+  transform: none;
+}
+
+.legend-dot {
+  width: 13px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--mizu-ink);
+  transform: rotate(-7deg);
+}
+
+.legend-exam {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--shu);
+  border-radius: 46% 54% 48% 52% / 53% 46% 54% 47%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(199, 62, 58, .4);
+}
+
+/* ---------- Home mini calendar page ---------- */
+
+.mini-cal-page {
+  position: relative;
+  margin: 0 -8px 12px;
+  padding: 0 6px 10px;
+  border: 1px solid rgba(47, 93, 117, .2);
+  border-radius: 4px 4px 10px 10px;
+  background: #EDF7FB;
+  box-shadow: 0 8px 16px -15px rgba(26, 26, 26, .55);
+}
+
+.mini-cal-page .mini-cal-month {
+  margin-bottom: 5px;
+  padding: 6px 4px 0;
+  color: var(--mizu-ink);
+}
+
+.mini-cal-day {
+  position: relative;
+  min-height: 36px;
+  padding: 3px 1px;
+  gap: 2px;
+  border-radius: 2px;
+}
+
+.mini-cal-blank {
+  min-height: 36px;
+}
+
+.mini-cal-day:hover {
+  background: rgba(47, 93, 117, .09);
+}
+
+.mini-cal-day.is-today {
+  background: rgba(47, 93, 117, .08);
+  box-shadow: none;
+}
+
+.mini-cal-day.is-today::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 7px solid var(--mizu-ink);
+  border-left: 7px solid transparent;
+  opacity: .7;
+  pointer-events: none;
+}
+
+.mini-cal-day.is-exam {
+  background: transparent;
+}
+
+.mini-cal-day.is-exam .mini-cal-num {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border: 1.5px solid var(--shu);
+  border-radius: 46% 54% 48% 52% / 53% 46% 54% 47%;
+  color: var(--shu-dark);
+  font-weight: 600;
+  line-height: 1;
+  transform: rotate(-2deg);
+}
+
+.mini-cal-day.is-exam .mini-cal-num::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border: 1px solid var(--shu);
+  border-radius: 52% 48% 53% 47% / 47% 54% 46% 53%;
+  opacity: .55;
+}
+
+.mini-cal-dots .cal-dot {
+  width: 9px;
+  height: 5px;
+  border-radius: 1px;
+  opacity: .8;
+  transform: rotate(-8deg);
+}
+
+.mini-cal-dots .cal-dot--exam {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Next exams: clipped memo slips ---------- */
+
+.widget[data-section="calendar"] .widget-list {
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.widget[data-section="calendar"] .widget-exam {
+  position: relative;
+  padding: 9px 11px;
+  border: 1px solid rgba(47, 93, 117, .22);
+  border-radius: 2px 2px 8px 2px;
+  background: var(--card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .7),
+    0 5px 9px -7px rgba(26, 26, 26, .5);
+  transform: rotate(-.7deg);
+}
+
+.widget[data-section="calendar"] .widget-exam:nth-child(even) {
+  transform: rotate(.7deg);
+}
+
+.widget[data-section="calendar"] .widget-exam:last-child {
+  border-bottom: 1px solid rgba(47, 93, 117, .22);
+}
+
+.widget[data-section="calendar"] .widget-exam::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 16px;
+  width: 7px;
+  height: 16px;
+  border: 1.5px solid var(--mizu-ink);
+  border-bottom-color: transparent;
+  border-radius: 5px;
+  transform: rotate(-2deg);
+  opacity: .72;
+  pointer-events: none;
+}
+
+.cal-detail .exam-row {
+  position: relative;
+  margin-bottom: 7px;
+  padding: 10px 12px;
+  border: 1px solid rgba(47, 93, 117, .2);
+  border-radius: 2px 2px 8px 2px;
+  background: var(--card);
+  box-shadow: 0 4px 8px -7px rgba(26, 26, 26, .5);
+  transform: rotate(-.5deg);
+}
+
+.cal-detail .exam-row:nth-child(even) {
+  transform: rotate(.5deg);
+}
+
+.cal-detail .exam-row:last-child {
+  border-bottom: 1px solid rgba(47, 93, 117, .2);
+}
+
+.cal-detail .exam-row::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  width: 7px;
+  height: 15px;
+  border: 1.5px solid var(--mizu-ink);
+  border-bottom-color: transparent;
+  border-radius: 5px;
+  transform: rotate(-2deg);
+  opacity: .72;
+  pointer-events: none;
+}
+
+/* ---------- Today: sticky notes ---------- */
+
+.view[data-view="today"] .panel {
+  padding: 4px 0 0;
+  border: 0;
+  background: transparent;
+}
+
+.view[data-view="today"] .schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 2px 2px;
+}
+
+.view[data-view="today"] .schedule-row {
+  position: relative;
+  padding: 16px;
+  border-bottom: 0;
+  border-radius: 3px 3px 9px 3px;
+  background: var(--momo);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .32),
+    0 10px 16px -12px rgba(122, 78, 32, .55),
+    0 2px 3px rgba(122, 78, 32, .12);
+  transform: rotate(-1.2deg);
+}
+
+.view[data-view="today"] .schedule-row:nth-child(even) {
+  transform: rotate(1.2deg);
+}
+
+.view[data-view="today"] .schedule-row:first-child {
+  padding-top: 16px;
+}
+
+.view[data-view="today"] .schedule-row:last-child {
+  padding-bottom: 15px;
+}
+
+.view[data-view="today"] .schedule-row::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 24px;
+  width: 58px;
+  height: 15px;
+  border-left: 1px solid rgba(138, 90, 43, .16);
+  border-right: 1px solid rgba(138, 90, 43, .16);
+  background: rgba(250, 249, 246, .6);
+  transform: rotate(-2deg);
+  pointer-events: none;
+}
+
+.view[data-view="today"] .schedule-row:nth-child(even)::before {
+  left: auto;
+  right: 24px;
+  transform: rotate(2deg);
+}
+
+.view[data-view="today"] .schedule-row::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  background: #F2C79A;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+.view[data-view="today"] .schedule-row.is-done {
+  background: #F9E8D5;
+  transform: rotate(-1.8deg);
+}
+
+.view[data-view="today"] .schedule-row.is-done:nth-child(even) {
+  transform: rotate(1.8deg);
+}
+
+.view[data-view="today"] .schedule-row.is-done .block-title {
+  color: #9A7247;
+  opacity: .82;
+}
+
+.view[data-view="today"] .schedule-row.is-done .block-course,
+.view[data-view="today"] .schedule-row.is-done .block-time {
+  opacity: .62;
+}
+
+.view[data-view="today"] .block-time,
+.view[data-view="today"] .block-course {
+  color: var(--momo-ink);
+  opacity: .8;
+}
+
+.view[data-view="today"] .row-actions .icon-btn {
+  color: rgba(138, 90, 43, .72);
+}
+
+.view[data-view="today"] .row-actions .icon-btn:hover {
+  border-color: rgba(138, 90, 43, .35);
+  background: rgba(138, 90, 43, .12);
+  color: var(--momo-ink);
+}
+
+.view[data-view="today"] .tick {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--momo-ink);
+  border-radius: 46% 54% 51% 49% / 53% 47% 53% 47%;
+  background: transparent;
+  transform: rotate(-3deg);
+}
+
+.view[data-view="today"] .tick:hover {
+  border-color: var(--momo-ink);
+  background: rgba(138, 90, 43, .08);
+}
+
+.view[data-view="today"] .tick:checked {
+  border-color: var(--momo-ink);
+  background-color: var(--momo-ink);
+  background-image: none;
+}
+
+.view[data-view="today"] .tick:checked::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid rgba(255, 224, 194, .75);
+  border-radius: 52% 48% 46% 54% / 48% 54% 46% 52%;
+  transform: rotate(4deg);
+  pointer-events: none;
+}
+
+/* ---------- Home Today widget: mini sticky notes ---------- */
+
+.widget[data-section="today"] {
+  overflow: visible;
+}
+
+.widget[data-section="today"] .widget-head {
+  border-radius: calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px) 0 0;
+}
+
+.widget[data-section="today"] .widget-list {
+  gap: 10px;
+  margin-top: 12px;
+  padding-bottom: 2px;
+}
+
+.widget[data-section="today"] .widget-block {
+  position: relative;
+  padding: 10px 12px;
+  border-bottom: 0;
+  border-radius: 3px 3px 8px 3px;
+  background: var(--momo);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .3),
+    0 7px 11px -9px rgba(122, 78, 32, .55),
+    0 1px 2px rgba(122, 78, 32, .12);
+  transform: rotate(-1.1deg);
+}
+
+.widget[data-section="today"] .widget-block:nth-child(even) {
+  transform: rotate(1.1deg);
+}
+
+.widget[data-section="today"] .widget-block::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 20px;
+  width: 42px;
+  height: 11px;
+  border-left: 1px solid rgba(138, 90, 43, .16);
+  border-right: 1px solid rgba(138, 90, 43, .16);
+  background: rgba(250, 249, 246, .6);
+  transform: rotate(-2deg);
+  pointer-events: none;
+}
+
+.widget[data-section="today"] .widget-block:nth-child(even)::before {
+  left: auto;
+  right: 20px;
+  transform: rotate(2deg);
+}
+
+.widget[data-section="today"] .widget-block::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background: #F2C79A;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+.widget[data-section="today"] .widget-block:last-child {
+  border-bottom: 0;
+}
+
+.widget[data-section="today"] .widget-block-time,
+.widget[data-section="today"] .widget-block-course {
+  color: var(--momo-ink);
+  opacity: .8;
+}
+
+.widget[data-section="today"] .widget-block.is-done {
+  background: #F9E8D5;
+  transform: rotate(-1.7deg);
+}
+
+.widget[data-section="today"] .widget-block.is-done:nth-child(even) {
+  transform: rotate(1.7deg);
+}
+
+.widget[data-section="today"] .widget-block.is-done .widget-block-title {
+  color: #9A7247;
+}
+
+.widget[data-section="today"] .mini-done {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid var(--momo-ink);
+  border-radius: 47% 53% 49% 51% / 52% 48% 52% 48%;
+  color: var(--momo-ink);
+  font-size: 9px;
+  line-height: 1;
+  transform: rotate(-3deg);
+}
+
+.widget[data-section="today"] .widget-foot {
+  margin-top: 15px;
+}
+
+/* ---------- Phase 1 responsive flattening ---------- */
+
+@media (max-width: 820px) {
+  .cal-day.is-exam .cal-num {
+    width: 25px;
+    height: 25px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cal-day.is-exam .cal-num {
+    width: 24px;
+    height: 24px;
+    font-size: 9.5px;
+  }
+
+  .view[data-view="today"] .schedule-row,
+  .view[data-view="today"] .schedule-row:nth-child(even),
+  .view[data-view="today"] .schedule-row.is-done,
+  .view[data-view="today"] .schedule-row.is-done:nth-child(even),
+  .widget[data-section="today"] .widget-block,
+  .widget[data-section="today"] .widget-block:nth-child(even),
+  .widget[data-section="today"] .widget-block.is-done,
+  .widget[data-section="today"] .widget-block.is-done:nth-child(even),
+  .widget[data-section="calendar"] .widget-exam,
+  .widget[data-section="calendar"] .widget-exam:nth-child(even),
+  .cal-detail .exam-row,
+  .cal-detail .exam-row:nth-child(even) {
+    transform: none;
+  }
+
+  .view[data-view="today"] .schedule-row {
+    box-shadow: 0 1px 2px rgba(122, 78, 32, .14);
+  }
+
+  .widget[data-section="today"] .widget-block {
+    box-shadow: 0 1px 2px rgba(122, 78, 32, .14);
+  }
+
+  .widget[data-section="calendar"] .widget-exam,
+  .cal-detail .exam-row {
+    box-shadow: 0 1px 2px rgba(26, 26, 26, .08);
+  }
+
+  .view[data-view="today"] .schedule-row::before {
+    top: -6px;
+    height: 12px;
+  }
+
+  .widget[data-section="today"] .widget-block::before {
+    top: -4px;
+    height: 9px;
+  }
+
+  .cal-day.is-exam .cal-num,
+  .cal-day.is-exam .cal-num::after {
+    transform: none;
+  }
+}

@@ -871,6 +871,10 @@ function courseOptionsHtml(selected = '') {
   return options.join('');
 }
 
+function spiralBindingHtml(count = 12) {
+  return `<div class="spiral" aria-hidden="true">${'<i></i>'.repeat(count)}</div>`;
+}
+
 function emptyHtml({ mark = '+', title, copy, actions = '' }) {
   return `<div class="empty">
     <div class="empty-mark" aria-hidden="true">${esc(mark)}</div>
@@ -1027,10 +1031,13 @@ function renderHome() {
     <div class="home-grid">
       <section class="widget" data-section="calendar" aria-labelledby="home-calendar-title">
         ${widgetHeadHtml({ id: 'home-calendar-title', title: 'Calendar', nav: 'calendar' })}
-        <p class="mini-cal-month">${esc(formatMonthYear(now))}</p>
-        <div class="mini-cal-grid">
-          ${DAYS.map((day) => `<span class="mini-cal-wd" aria-hidden="true">${day.slice(0, 1)}</span>`).join('')}
-          ${miniCells.join('')}
+        <div class="mini-cal-page">
+          ${spiralBindingHtml(11)}
+          <p class="mini-cal-month">${esc(formatMonthYear(now))}</p>
+          <div class="mini-cal-grid">
+            ${DAYS.map((day) => `<span class="mini-cal-wd" aria-hidden="true">${day.slice(0, 1)}</span>`).join('')}
+            ${miniCells.join('')}
+          </div>
         </div>
         <div class="widget-subhead"><span>Next exams</span><span>${exams.length ? `${exams.length} ahead` : 'None'}</span></div>
         ${exams.length
@@ -1373,6 +1380,7 @@ function renderCalendar() {
     </div>
 
     <div class="calendar">
+      ${spiralBindingHtml(14)}
       <div class="cal-weekdays" aria-hidden="true">
         ${DAYS.map((day) => `<span class="cal-weekday">${day}</span>`).join('')}
       </div>
