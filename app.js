@@ -1165,6 +1165,12 @@ function renderToday() {
 
 /* ---------- Timetable ---------- */
 
+function ttArtWashi(dayIndex, blockIndex) {
+  /* One wash for the section; only the torn tilt varies. */
+  const tilt = (dayIndex + blockIndex) % 2 === 0 ? 'a' : 'b';
+  return `tt-tilt-${tilt}`;
+}
+
 function renderTimetable() {
   const root = document.getElementById('view-timetable');
   const total = DAYS.reduce((sum, day) => sum + state.weeklyTemplate[day].length, 0);
@@ -1183,7 +1189,7 @@ function renderTimetable() {
 
     <div class="week-scroll">
       <div class="week-board">
-        ${DAYS.map((day) => {
+        ${DAYS.map((day, dayIndex) => {
           const blocks = sortBlocks(state.weeklyTemplate[day]);
           return `<article class="day-col" aria-label="${DAY_LONG[day]}">
             <div class="day-col-head">
@@ -1191,9 +1197,9 @@ function renderTimetable() {
               <span class="day-count">${blocks.length ? blocks.length : '—'}</span>
             </div>
             <div class="day-blocks">
-              ${blocks.map((block) => {
+              ${blocks.map((block, blockIndex) => {
                 const course = courseById(block.courseId);
-                return `<button class="t-block" type="button" data-action="edit-template-block" data-day="${day}" data-id="${esc(block.id)}" aria-label="Edit ${esc(block.title)} on ${DAY_LONG[day]}">
+                return `<button class="t-block ${ttArtWashi(dayIndex, blockIndex)}" type="button" data-action="edit-template-block" data-day="${day}" data-id="${esc(block.id)}" aria-label="Edit ${esc(block.title)} on ${DAY_LONG[day]}">
                   <time>${block.start ? `${esc(block.start)}${block.end ? `–${esc(block.end)}` : ''}` : 'Any time'}</time>
                   <strong>${esc(block.title)}</strong>
                   ${course ? `<small>${esc(course.title)}</small>` : ''}
@@ -1252,35 +1258,44 @@ function courseCardHtml(course, index = 0) {
     ? `${examDays > 0 ? `${examDays} days` : examDays === 0 ? 'today' : 'past'}`
     : '';
 
-  return `<article class="course" aria-label="${esc(course.title)}">
-    <header class="course-head">
-      <div class="course-head-main">
-        <h2 class="course-title"><span class="row-num" aria-hidden="true">${rowNumber(index)}</span>${esc(course.title)}</h2>
-        <div class="course-meta">
-          <span>${countLabel(course.modules.length, 'module')} · ${countLabel(stats.total, 'topic')}</span>
-          ${course.examDate ? `<span class="exam-chip">Exam ${esc(formatShortDate(course.examDate))}${examText ? ` · ${esc(examText)}` : ''}</span>` : ''}
+  return `<article class="course cf-folder" aria-label="${esc(course.title)}">
+    <div class="cf-folder-lid">
+      <h2 class="course-title cf-folder-tab">
+        <span class="row-num" aria-hidden="true">${rowNumber(index)}</span>
+        <span class="cf-folder-name">${esc(course.title)}</span>
+      </h2>
+    </div>
+    <div class="cf-folder-body">
+      <header class="course-head">
+        <div class="course-head-main">
+          <div class="course-meta">
+            <span class="cf-folder-count">${countLabel(course.modules.length, 'module')} · ${countLabel(stats.total, 'topic')}</span>
+            ${course.examDate ? `<span class="exam-chip">Exam ${esc(formatShortDate(course.examDate))}${examText ? ` · ${esc(examText)}` : ''}</span>` : ''}
+          </div>
         </div>
+        <div class="course-progress" aria-label="${stats.pct}% complete">
+          <span class="course-pct">${stats.pct}%</span>
+          <div class="bar cf-pencil-bar"><span class="bar-fill" style="width:${stats.pct}%"></span></div>
+        </div>
+        <div class="course-actions">
+          <button class="icon-btn" type="button" data-action="edit-course" data-course="${esc(course.id)}" aria-label="Edit ${esc(course.title)}" title="Edit course">${ICONS.edit}</button>
+          <button class="icon-btn icon-btn--danger" type="button" data-action="delete-course" data-course="${esc(course.id)}" aria-label="Delete ${esc(course.title)}" title="Delete course">${ICONS.trash}</button>
+        </div>
+      </header>
+      <div class="cf-index-stack">
+        ${course.modules.map((module) => moduleHtml(course, module)).join('')}
       </div>
-      <div class="course-progress" aria-label="${stats.pct}% complete">
-        <span class="course-pct">${stats.pct}%</span>
-        <div class="bar"><span class="bar-fill" style="width:${stats.pct}%"></span></div>
-      </div>
-      <div class="course-actions">
-        <button class="icon-btn" type="button" data-action="edit-course" data-course="${esc(course.id)}" aria-label="Edit ${esc(course.title)}" title="Edit course">${ICONS.edit}</button>
-        <button class="icon-btn icon-btn--danger" type="button" data-action="delete-course" data-course="${esc(course.id)}" aria-label="Delete ${esc(course.title)}" title="Delete course">${ICONS.trash}</button>
-      </div>
-    </header>
-    ${course.modules.map((module) => moduleHtml(course, module)).join('')}
-    <button class="add-row" type="button" data-action="add-module" data-course="${esc(course.id)}">${ICONS.plus} Add module</button>
+      <button class="add-row" type="button" data-action="add-module" data-course="${esc(course.id)}">${ICONS.plus} Add module</button>
+    </div>
   </article>`;
 }
 
 function moduleHtml(course, module) {
   const stats = moduleStats(module);
   const collapsed = ui.collapsedModules.has(module.id);
-  return `<section class="module" aria-label="${esc(module.title)}">
+  return `<section class="module cf-index-card" aria-label="${esc(module.title)}">
     <div class="module-head">
-      <button class="module-toggle" type="button" data-action="toggle-module" data-module="${esc(module.id)}" aria-expanded="${!collapsed}" aria-controls="module-${esc(module.id)}">
+      <button class="module-toggle cf-index-tab" type="button" data-action="toggle-module" data-module="${esc(module.id)}" aria-expanded="${!collapsed}" aria-controls="module-${esc(module.id)}">
         ${ICONS.chevron}
         <span class="module-title">${esc(module.title)}</span>
         <span class="module-count">${stats.done}/${stats.total}</span>
@@ -1291,7 +1306,7 @@ function moduleHtml(course, module) {
         <button class="icon-btn icon-btn--danger" type="button" data-action="delete-module" data-course="${esc(course.id)}" data-module="${esc(module.id)}" aria-label="Delete ${esc(module.title)}" title="Delete module">${ICONS.trash}</button>
       </div>
     </div>
-    <div id="module-${esc(module.id)}" ${collapsed ? 'hidden' : ''}>
+    <div id="module-${esc(module.id)}" class="cf-index-body" ${collapsed ? 'hidden' : ''}>
       <div class="topics">
         ${module.topics.map((topic) => topicHtml(course, module, topic)).join('')}
       </div>
@@ -1481,7 +1496,7 @@ function progressHtml() {
   const overall = overallStats();
   const upcoming = upcomingExams();
   return `
-    <div class="overall-panel">
+    <div class="overall-panel st-overall-sticker">
       <div>
         <p class="overall-label">All topics complete</p>
         <p class="overall-value">${overall.pct}<sup>%</sup></p>
@@ -1501,11 +1516,11 @@ function progressHtml() {
         <button class="text-btn" type="button" data-action="add-exam" data-date="${todayISO()}">Add exam</button>
       </div>
       ${upcoming.length
-        ? `<div class="exam-grid">
+        ? `<div class="exam-grid st-stamp-grid">
             ${upcoming.map((exam) => {
               const course = courseById(exam.courseId);
               const days = diffDays(exam.date, todayISO());
-              return `<article class="exam-card">
+              return `<article class="exam-card st-stamp-card">
                 ${hankoHtml(exam, true)}
                 <div class="exam-card-copy">
                   <strong>${esc(exam.title)}</strong>
@@ -1524,10 +1539,10 @@ function progressHtml() {
         <span class="section-aside">${countLabel(overall.total, 'topic')}</span>
       </div>
       ${state.courses.length
-        ? `<div class="progress-courses">
+        ? `<div class="progress-courses st-sticker-card">
             ${state.courses.map((course, index) => {
               const stats = courseStats(course);
-              return `<div class="progress-course">
+              return `<div class="progress-course st-bar-sticker">
                 <div class="progress-course-main">
                   <div class="progress-course-name">
                     <strong><span class="row-num" aria-hidden="true">${rowNumber(index)}</span>${esc(course.title)}</strong>
@@ -1548,6 +1563,14 @@ function progressHtml() {
   `;
 }
 
+function stArtStatCard(value, label, note) {
+  return `<div class="stat st-stat-sticker">
+        <div class="stat-value">${value}</div>
+        <div class="stat-label">${esc(label)}</div>
+        <div class="stat-note">${esc(note)}</div>
+      </div>`;
+}
+
 function analyticsHtml() {
   const streak = streakDays();
   const week = weekCompletions();
@@ -1555,22 +1578,10 @@ function analyticsHtml() {
   const days = last14Days();
 
   return `
-    <div class="stat-grid">
-      <div class="stat">
-        <div class="stat-value">${streak}</div>
-        <div class="stat-label">Day streak</div>
-        <div class="stat-note">Consecutive check-ins</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">${week}</div>
-        <div class="stat-label">This week</div>
-        <div class="stat-note">Topics checked</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">${overall.done}</div>
-        <div class="stat-label">Topics done</div>
-        <div class="stat-note">of ${overall.total} total</div>
-      </div>
+    <div class="stat-grid st-stat-grid">
+      ${stArtStatCard(streak, 'Day streak', 'Consecutive check-ins')}
+      ${stArtStatCard(week, 'This week', 'Topics checked')}
+      ${stArtStatCard(overall.done, 'Topics done', `of ${overall.total} total`)}
     </div>
 
     <section class="section" aria-labelledby="analytics-activity">
@@ -1578,9 +1589,9 @@ function analyticsHtml() {
         <h2 class="section-title" id="analytics-activity">Last 14 days</h2>
         <span class="section-aside">${week} this week</span>
       </div>
-      <div class="activity" role="img" aria-label="Topic check-ins over the last 14 days">
+      <div class="activity st-stampcard" role="img" aria-label="Topic check-ins over the last 14 days">
         ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'topic')}">
-          <div class="activity-cell${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}">${day.day}</div>
+          <div class="activity-cell st-stamp${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}">${day.day}</div>
           <div class="activity-label">${day.weekday}</div>
         </div>`).join('')}
       </div>
@@ -1593,10 +1604,10 @@ function analyticsHtml() {
         <span class="section-aside">${overall.pct}% overall</span>
       </div>
       ${state.courses.length
-        ? `<div class="subject-list">
+        ? `<div class="subject-list st-sticker-card">
             ${state.courses.map((course, index) => {
               const stats = courseStats(course);
-              return `<div class="subject-row">
+              return `<div class="subject-row st-subject-sticker">
                 <span class="row-num" aria-hidden="true">${rowNumber(index)}</span>
                 <span class="subject-name">${esc(course.title)}</span>
                 <div class="subject-bar"><div class="bar" aria-hidden="true"><span class="bar-fill" style="width:${stats.pct}%"></span></div></div>

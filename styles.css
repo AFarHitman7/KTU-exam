@@ -1404,125 +1404,222 @@ h1 {
 
 /* ---------- Timetable ---------- */
 
+/* An open notebook spread: lemon-tinted journal pages, divider tabs,
+   washi-strip blocks and a stitched coupon edge for adding. */
+
 .week-scroll {
   overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--card);
+  padding: 22px 14px 16px;
+  border: 1px solid #E2D6B0;
+  border-radius: 8px;
+  background: #F6F1DF;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
 }
 
 .week-board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  min-width: 770px;
+  min-width: 990px;
+  border: 1px solid #E7D9AE;
+  border-radius: 3px;
+  background: #FFFCF0;
+  box-shadow: 0 2px 0 rgba(122, 100, 32, .05), 0 10px 20px -16px rgba(122, 100, 32, .6);
 }
 
 .day-col {
+  position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 302px;
-  border-right: 1px solid var(--line);
+  min-width: 0;
+  min-height: 318px;
+  border-right: 1px solid rgba(122, 100, 32, .12);
+  background: #FFFCF0;
+}
+
+.day-col:first-child {
+  border-radius: 2px 0 0 2px;
 }
 
 .day-col:last-child {
   border-right: 0;
+  border-radius: 0 2px 2px 0;
 }
 
+/* labelled divider tabs rising above the page edge */
 .day-col-head {
+  position: relative;
+  z-index: 2;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 6px;
-  padding: 11px 10px;
-  border-bottom: 1px solid var(--line);
-  background: var(--lemon);
+  margin: 0 4px;
+  padding: 6px 8px 7px;
+  transform: translateY(-9px);
+  border: 1px solid #E0C97C;
+  border-radius: 8px 8px 3px 3px;
+  background: #FFE79B;
   color: var(--lemon-ink);
+  box-shadow: 0 2px 0 rgba(122, 100, 32, .08);
 }
 
 .day-name {
-  font-family: var(--serif);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: .02em;
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .1em;
+  text-transform: uppercase;
 }
 
 .day-count {
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border: 1px solid rgba(122, 100, 32, .45);
+  border-radius: var(--pill);
+  background: #FFFCF0;
   font-family: var(--mono);
-  font-size: 8.5px;
-  color: var(--lemon-ink);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .day-blocks {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
+  gap: 8px;
+  padding: 7px 6px 8px;
 }
 
 .t-block {
-  width: 100%;
-  padding: 8px 10px;
-  border-left: 2px solid var(--lemon-ink);
-  border-radius: 12px;
-  background: var(--lemon);
-  color: var(--lemon-ink);
+  --tt-tilt: -1deg;
+  width: calc(100% - 4px);
+  min-height: 48px;
+  margin: 0 2px;
+  padding: 8px 8px 9px;
+  border: 0;
+  border-radius: 4px;
+  background: #FFF0B8;
+  color: #7A6420;
   text-align: left;
-  transition: filter .12s;
+  transform: rotate(var(--tt-tilt));
+  clip-path: polygon(
+    3px 0, 0 5%, 3px 10%, 0 15%, 3px 20%, 0 25%, 3px 30%, 0 35%,
+    3px 40%, 0 45%, 3px 50%, 0 55%, 3px 60%, 0 65%, 3px 70%, 0 75%,
+    3px 80%, 0 85%, 3px 90%, 0 95%, 3px 100%,
+    calc(100% - 3px) 100%, 100% 95%, calc(100% - 3px) 90%, 100% 85%,
+    calc(100% - 3px) 80%, 100% 75%, calc(100% - 3px) 70%, 100% 65%,
+    calc(100% - 3px) 60%, 100% 55%, calc(100% - 3px) 50%, 100% 45%,
+    calc(100% - 3px) 40%, 100% 35%, calc(100% - 3px) 30%, 100% 25%,
+    calc(100% - 3px) 20%, 100% 15%, calc(100% - 3px) 10%, 100% 5%,
+    calc(100% - 3px) 0
+  );
+  transition: transform .12s var(--ease), filter .12s var(--ease);
+}
+
+.tt-tilt-a {
+  --tt-tilt: -1deg;
+}
+
+.tt-tilt-b {
+  --tt-tilt: 1deg;
 }
 
 .t-block:hover {
-  filter: brightness(.97);
+  transform: rotate(0deg) translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.t-block:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -4px;
+  transform: rotate(0deg);
 }
 
 .t-block time {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   font-family: var(--mono);
-  font-size: 8.5px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
-  color: var(--lemon-ink);
+  line-height: 1.2;
   white-space: nowrap;
+  opacity: .85;
 }
 
 .t-block strong {
   display: block;
-  font-size: 10.5px;
-  font-weight: 500;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -.01em;
+  overflow-wrap: break-word;
 }
 
 .t-block small {
   display: block;
-  margin-top: 2px;
-  font-size: 8.5px;
-  line-height: 1.3;
-  color: var(--lemon-ink);
-  overflow-wrap: anywhere;
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.25;
+  opacity: .8;
+  overflow-wrap: break-word;
 }
 
+/* one lemon wash for every strip; identity lives in the text line */
+.t-block small::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: #7A6420;
+  vertical-align: 1px;
+}
+
+/* dashed stitch inside and out - a coupon edge, not a button */
 .day-add {
   display: grid;
   place-items: center;
   min-height: 34px;
-  margin: 0 8px 8px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 12px;
-  color: var(--ink-3);
-  font-size: 15px;
+  margin: 2px 9px 10px;
+  border: 1.5px dashed rgba(122, 100, 32, .5);
+  border-radius: 5px;
+  outline: 1px dashed rgba(122, 100, 32, .28);
+  outline-offset: -5px;
+  background: #FFF8DA;
+  color: var(--lemon-ink);
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1;
   transition: background .12s, color .12s, border-color .12s;
 }
 
 .day-add:hover {
-  border-color: var(--ink);
-  background: var(--wash);
-  color: var(--ink);
+  border-color: var(--lemon-ink);
+  background: #FFF0B8;
+  color: #4F4012;
+}
+
+.day-add:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 .timetable-note {
-  margin-top: 12px;
+  margin-top: 14px;
+  padding-left: 11px;
+  border-left: 2px solid #E5CC78;
+  font-family: var(--serif);
   font-size: 11.5px;
+  font-style: italic;
+  line-height: 1.5;
   color: var(--ink-3);
 }
 
@@ -1829,6 +1926,605 @@ h1 {
 .add-row svg {
   width: 13px;
   height: 13px;
+}
+
+/* ============================================================
+   Stationery art — Courses (folder index)
+   A sakura file folder carries the course title on its tab.
+   Tabbed index cards stack inside it, one per module, and the
+   topics sit on ruled card lines. Solid fills only.
+   ============================================================ */
+
+/* ---------- Folder shell ---------- */
+
+.course {
+  position: relative;
+  margin: 0 0 26px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transform: none;
+  isolation: isolate;
+}
+
+.course:last-child {
+  margin-bottom: 4px;
+}
+
+.cf-folder-lid {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: -1px;
+}
+
+.cf-folder-tab {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: min(82%, 620px);
+  margin: 0;
+  padding: 7px 18px 6px;
+  border: 1px solid rgba(138, 74, 94, .42);
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: #FDE2EB;
+  color: var(--sakura-ink);
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+
+.cf-folder-tab .row-num {
+  align-self: center;
+  margin: 0;
+  padding: 1px 5px;
+  border: 1px solid rgba(138, 74, 94, .34);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .42);
+  color: var(--sakura-ink);
+  font-size: 8px;
+  vertical-align: 0;
+}
+
+.cf-folder-name {
+  overflow-wrap: anywhere;
+}
+
+.cf-folder-body {
+  position: relative;
+  z-index: 1;
+  padding: 0 0 6px;
+  border: 1px solid rgba(138, 74, 94, .42);
+  border-radius: 0 14px 14px 14px;
+  background: var(--sakura);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .4),
+    0 16px 24px -22px rgba(76, 28, 43, .55);
+}
+
+/* ---------- Folder header ---------- */
+
+.course .course-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 14px 12px 12px 16px;
+  border-bottom: 1px dashed rgba(138, 74, 94, .38);
+}
+
+.course .course-head-main {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.course .course-meta {
+  gap: 6px 12px;
+  margin-top: 0;
+  color: var(--sakura-ink);
+  font-size: 11px;
+}
+
+.cf-folder-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.course .course-progress {
+  display: grid;
+  grid-template-columns: auto minmax(70px, 1fr);
+  align-items: center;
+  gap: 9px;
+  flex: 0 1 250px;
+  min-width: 170px;
+  padding-top: 0;
+}
+
+.course .course-pct {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--sakura-ink);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.course .course-actions {
+  margin: -4px -2px -4px 0;
+}
+
+.course .course-actions .icon-btn {
+  color: var(--sakura-ink);
+}
+
+.course .course-actions .icon-btn:hover {
+  border-color: rgba(138, 74, 94, .4);
+  background: rgba(255, 255, 255, .45);
+  color: var(--sakura-ink);
+}
+
+.course .course-actions .icon-btn--danger:hover {
+  border-color: var(--shu);
+  background: var(--shu-wash);
+  color: var(--shu-dark);
+}
+
+/* Exam chip becomes an inked red stamp. */
+.course .exam-chip {
+  gap: 0;
+  padding: 2px 8px 1px;
+  border: 2px solid var(--shu);
+  border-radius: 2px 3px 2px 3px;
+  background: rgba(255, 255, 255, .22);
+  box-shadow: inset 0 0 0 1px rgba(199, 62, 58, .35);
+  color: var(--shu-dark);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  transform: rotate(-1.6deg);
+}
+
+.course .exam-chip::before {
+  display: none;
+}
+
+/* Pencil-shaded progress strip: a solid fill with a hand-jagged
+   clip edge and a faint graphite hatch, never a CSS gradient. */
+.course .bar {
+  height: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(138, 74, 94, .45);
+  border-radius: 2px;
+  background: #F5BFD1;
+}
+
+.course .bar-fill {
+  border-radius: 1px;
+  background-color: var(--sakura-ink);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='5'%3E%3Cpath d='M0 5L5 0' stroke='%23FBD3E0' stroke-width='1' opacity='.22'/%3E%3C/svg%3E");
+  background-size: 5px 5px;
+  box-shadow: inset 0 -2px 0 rgba(61, 22, 35, .18);
+  clip-path: polygon(0 14%, 100% 0, 97% 26%, 100% 48%, 96% 70%, 99% 100%, 0 88%);
+}
+
+/* ---------- Index-card stack ---------- */
+
+.course .cf-index-stack {
+  padding: 30px 14px 4px;
+}
+
+.course .cf-index-stack:not(:has(> .module)) {
+  padding: 10px 14px 0;
+}
+
+.course .module {
+  position: relative;
+  margin: 0;
+  border: 1px solid rgba(138, 74, 94, .34);
+  border-radius: 3px 11px 11px 3px;
+  background: #FFFCF7;
+  box-shadow:
+    0 2px 0 rgba(138, 74, 94, .1),
+    0 12px 18px -18px rgba(76, 28, 43, .6);
+}
+
+.course .module + .module {
+  margin-top: 34px;
+}
+
+.course .module:nth-child(even) {
+  margin-left: 18px;
+}
+
+/* Each module's tab lifts off the card's top-left edge. */
+.course .module-toggle {
+  position: absolute;
+  top: -26px;
+  left: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100% - 24px);
+  height: 27px;
+  padding: 0 12px 0 8px;
+  border: 1px solid rgba(138, 74, 94, .34);
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+  background: #FFFCF7;
+  color: var(--sakura-ink);
+  text-align: left;
+}
+
+.course .module-toggle:hover {
+  background: #FFF7FA;
+}
+
+.course .module-toggle .chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--sakura-ink);
+  opacity: .75;
+}
+
+.course .module-title {
+  overflow: hidden;
+  color: var(--sakura-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course .module-count {
+  flex: 0 0 auto;
+  color: var(--sakura-ink);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+  opacity: .78;
+}
+
+.course .module-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid rgba(138, 74, 94, .16);
+}
+
+.course .module-head::before {
+  content: "Topics";
+  margin-right: auto;
+  color: rgba(138, 74, 94, .62);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.course .module-pct {
+  color: var(--sakura-ink);
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.course .module-actions {
+  gap: 0;
+  opacity: 1;
+}
+
+.course .module-actions .icon-btn {
+  width: 30px;
+  height: 30px;
+  color: var(--sakura-ink);
+}
+
+.course .module-actions .icon-btn:hover {
+  border-color: rgba(138, 74, 94, .35);
+  background: rgba(138, 74, 94, .08);
+  color: var(--sakura-ink);
+}
+
+.course .module-actions .icon-btn--danger:hover {
+  border-color: var(--shu);
+  background: var(--shu-wash);
+  color: var(--shu-dark);
+}
+
+/* ---------- Ruled topics ---------- */
+
+.course .topics {
+  margin: 0 14px 2px 20px;
+  padding: 2px 0 0 16px;
+  border-left: 1px solid rgba(199, 62, 58, .26);
+}
+
+.course .topic {
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(138, 74, 94, .14);
+}
+
+.course .topic:last-child {
+  border-bottom: 0;
+}
+
+.course .topic-title {
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.course .topic-meta {
+  color: rgba(138, 74, 94, .8);
+  letter-spacing: .02em;
+}
+
+.course .topic.is-done .topic-title {
+  color: var(--ink-3);
+  text-decoration-color: rgba(138, 74, 94, .55);
+  text-decoration-thickness: 1.5px;
+}
+
+.course .topic-actions {
+  gap: 0;
+  opacity: 1;
+}
+
+.course .topic-actions .icon-btn {
+  width: 30px;
+  height: 30px;
+  color: rgba(138, 74, 94, .72);
+}
+
+.course .topic-actions .icon-btn:hover {
+  border-color: rgba(138, 74, 94, .35);
+  background: rgba(138, 74, 94, .08);
+  color: var(--sakura-ink);
+}
+
+.course .topic-actions .icon-btn--danger:hover {
+  border-color: var(--shu);
+  background: var(--shu-wash);
+  color: var(--shu-dark);
+}
+
+/* Topic checkbox: a pencil-drawn circle that fills with graphite. */
+.course .topic .tick {
+  width: 24px;
+  height: 24px;
+  margin-top: 0;
+  border: 2px solid var(--sakura-ink);
+  border-radius: 46% 54% 49% 51% / 52% 47% 53% 48%;
+  background-color: #FFFCF7;
+  background-image: none;
+  box-shadow: inset 0 0 0 1px rgba(138, 74, 94, .12);
+  transform: rotate(-1.8deg);
+}
+
+.course .topic .tick:hover {
+  border-color: var(--sakura-ink);
+  background-color: #FDE2EB;
+}
+
+.course .topic .tick:checked {
+  border-color: var(--sakura-ink);
+  background-color: var(--sakura-ink);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5.5 12.5l4.2 4.2L18.8 7.3' fill='none' stroke='%23FFFCF7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 6L6 0' stroke='%23FBD3E0' stroke-width='1' opacity='.26'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, repeat;
+  background-position: center, 0 0;
+  background-size: 14px 14px, 6px 6px;
+}
+
+.course .topic .tick:focus-visible {
+  outline: 2px solid var(--sakura-ink);
+  outline-offset: 2px;
+}
+
+/* ---------- Add rows ---------- */
+
+.course .add-row {
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  margin: 4px 14px 14px 20px;
+  padding: 7px 12px;
+  border: 1px dashed rgba(138, 74, 94, .45);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .28);
+  color: var(--sakura-ink);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+
+.course .add-row:hover {
+  border-color: var(--sakura-ink);
+  background: rgba(255, 255, 255, .5);
+  color: var(--sakura-ink);
+}
+
+.course .add-row svg {
+  width: 13px;
+  height: 13px;
+}
+
+.course .module .add-row {
+  margin: 2px 14px 10px 20px;
+  background: transparent;
+}
+
+/* ---------- Overall tally ---------- */
+
+.overall-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-bottom: 20px;
+  padding: 9px 14px;
+  border: 1px solid rgba(138, 74, 94, .32);
+  border-left: 3px solid var(--sakura-ink);
+  border-radius: 3px 10px 10px 3px;
+  background: #FDE7EE;
+  color: var(--sakura-ink);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+  transform: rotate(-.4deg);
+}
+
+.overall-line strong {
+  color: var(--sakura-ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+/* ---------- Courses responsive flattening ---------- */
+
+@media (max-width: 820px) {
+  .course .course-head {
+    gap: 8px 12px;
+    padding: 12px 12px 10px 14px;
+  }
+
+  .course .course-progress {
+    flex: 1 1 100%;
+    min-width: 0;
+    grid-template-columns: auto minmax(60px, 1fr);
+  }
+
+  .course .course-actions {
+    margin-left: auto;
+  }
+
+  .course .cf-index-stack {
+    padding: 28px 12px 2px;
+  }
+
+  .course .module:nth-child(even) {
+    margin-left: 12px;
+  }
+
+  .course .module + .module {
+    margin-top: 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .course {
+    margin-bottom: 22px;
+  }
+
+  .cf-folder-body {
+    box-shadow: 0 1px 2px rgba(76, 28, 43, .1);
+  }
+
+  .cf-folder-tab {
+    max-width: calc(100% - 12px);
+    padding: 6px 12px 5px;
+    font-size: 16px;
+  }
+
+  .course .course-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    align-items: center;
+    padding: 11px 10px 10px 12px;
+  }
+
+  .course .course-head-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .course .course-actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    margin: -4px -2px -4px 0;
+  }
+
+  .course .course-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .course .cf-index-stack {
+    padding: 26px 8px 2px;
+  }
+
+  .course .module {
+    box-shadow: 0 1px 0 rgba(138, 74, 94, .1);
+  }
+
+  .course .module:nth-child(even) {
+    margin-left: 8px;
+  }
+
+  .course .module + .module {
+    margin-top: 30px;
+  }
+
+  .course .module-toggle {
+    top: -24px;
+    height: 25px;
+    max-width: calc(100% - 18px);
+  }
+
+  .course .topics {
+    margin: 0 8px 2px 12px;
+    padding-left: 12px;
+  }
+
+  .course .add-row {
+    margin: 4px 10px 12px 18px;
+  }
+
+  .course .module .add-row {
+    margin: 2px 10px 8px 12px;
+  }
+
+  .overall-line,
+  .course .exam-chip {
+    transform: none;
+  }
+
+  .course .topic .tick {
+    transform: none;
+  }
+
+  .course .course-actions .icon-btn,
+  .course .module-actions .icon-btn,
+  .course .topic-actions .icon-btn {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 /* ---------- Calendar ---------- */
@@ -2143,91 +2839,109 @@ h1 {
   box-shadow: inset 0 0 0 1px var(--sec-ink);
 }
 
+/* Big matcha die-cut sticker: white inner rim, one silent tilt. */
 .overall-panel {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px 32px;
-  padding: clamp(22px, 3.2vw, 32px);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--card);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 20px 34px;
+  padding: clamp(24px, 3.2vw, 34px);
+  border: 0;
+  border-radius: 26px 20px 24px 22px;
+  background: var(--matcha);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    0 16px 30px -22px rgba(58, 84, 44, .7);
+  transform: rotate(-.6deg);
 }
 
 .overall-label {
-  margin-bottom: 6px;
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: .16em;
-  color: var(--ink-3);
+  margin-bottom: 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  line-height: 1.3;
+  color: #3C5230;
   text-transform: uppercase;
 }
 
 .overall-value {
-  color: var(--sec-ink);
+  color: var(--matcha-ink);
   font-family: var(--serif);
-  font-size: clamp(58px, 10vw, 84px);
-  font-weight: 400;
-  line-height: .9;
-  letter-spacing: -.05em;
+  font-size: clamp(64px, 11vw, 108px);
+  font-weight: 500;
+  line-height: .82;
+  letter-spacing: -.055em;
   font-variant-numeric: lining-nums tabular-nums;
 }
 
 .overall-value sup {
   font-family: var(--sans);
-  font-size: 18px;
-  font-weight: 400;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: 0;
-  vertical-align: 32px;
+  vertical-align: 38px;
 }
 
 .overall-copy {
-  max-width: 32ch;
-  font-size: 12.5px;
-  color: var(--ink-2);
+  max-width: 40ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #34472B;
 }
 
 .overall-copy strong {
-  font-weight: 500;
-  color: var(--ink);
+  font-weight: 600;
+  color: #26381F;
 }
 
 .overall-bar {
-  flex: 1 1 240px;
-  max-width: 420px;
+  grid-column: 1 / -1;
+  max-width: none;
 }
 
 .overall-bar .bar {
-  height: 5px;
-  margin-bottom: 8px;
-  background: var(--sec-bg);
+  height: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border-radius: var(--pill);
+  background: #F2F8EC;
+  box-shadow: inset 0 0 0 1px rgba(74, 107, 58, .22);
 }
 
 .overall-bar .bar-fill {
-  background: var(--sec-ink);
+  border-radius: var(--pill);
+  background: var(--matcha-ink);
+  box-shadow: inset 0 0 0 2px rgba(252, 251, 248, .5);
 }
 
 .overall-bar p {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--ink-3);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4A5C41;
 }
 
 .progress-courses {
   margin-top: 18px;
+  padding: 6px 16px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border: 1px solid rgba(74, 107, 58, .22);
+  border-radius: 18px 14px 18px 15px;
   background: var(--card);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    0 12px 24px -22px rgba(58, 84, 44, .55);
 }
 
 .progress-course {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--line);
+  padding: 15px 2px;
+  border-bottom: 1px dashed rgba(74, 107, 58, .22);
 }
 
 .progress-course:last-child {
@@ -2241,16 +2955,17 @@ h1 {
 
 .progress-course-name {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 6px;
+  margin-bottom: 9px;
 }
 
 .progress-course-name strong {
   overflow: hidden;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2262,39 +2977,79 @@ h1 {
   color: var(--ink-3);
 }
 
+/* Sticker bar: solid matcha ink, rounded ends, a thin paper rim. */
 .progress-course .bar {
-  height: 3px;
-  background: var(--sec-bg);
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--pill);
+  background: #E8F1E0;
+  box-shadow: inset 0 0 0 1px rgba(74, 107, 58, .2);
 }
 
 .progress-course .bar-fill {
-  background: var(--sec-ink);
+  border-radius: var(--pill);
+  background: var(--matcha-ink);
+  box-shadow: inset 0 0 0 2px rgba(252, 251, 248, .5);
 }
 
 .progress-course-name .row-num {
-  margin-right: 7px;
+  margin-right: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--matcha-ink);
 }
 
 .progress-course-name .pct-pill {
   flex: 0 0 auto;
-  font-size: 9.5px;
+  padding: 3px 10px;
+  border-radius: var(--pill);
+  background: #F4F9EF;
+  color: var(--matcha-ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 1px rgba(74, 107, 58, .38);
 }
 
 .exam-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
   margin-top: 18px;
 }
 
+/* A posted stamp: shu outer edge, paper gutter, then a second shu ring. */
 .exam-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  border: 2px solid rgba(199, 62, 58, .72);
+  border-radius: 12px 16px 13px 15px;
   background: var(--card);
+  box-shadow:
+    inset 0 0 0 4px #fff,
+    inset 0 0 0 5px rgba(199, 62, 58, .34),
+    0 12px 20px -18px rgba(171, 51, 47, .6);
+  transform: rotate(-.8deg);
+}
+
+.exam-card:nth-child(even) {
+  border-radius: 15px 12px 16px 13px;
+  transform: rotate(.8deg);
+}
+
+.exam-card .hanko {
+  --size: 82px;
+  background: transparent;
+}
+
+.exam-card .hanko-kicker {
+  letter-spacing: .12em;
 }
 
 .exam-card-copy {
@@ -2304,101 +3059,197 @@ h1 {
 .exam-card-copy strong {
   display: block;
   font-family: var(--serif);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .exam-card-copy span {
   display: block;
-  margin-top: 4px;
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: .04em;
-  color: var(--ink-3);
+  margin-top: 5px;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  color: #6B655B;
 }
 
 .exam-card-copy .overdue {
   color: var(--shu);
+  font-weight: 600;
 }
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 6px 4px 4px;
 }
 
+/* Puffy fuji sticker: 3px white rim, soft lift, two-degree tilt. */
 .stat {
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--sec-bg);
+  position: relative;
+  padding: 22px 20px 20px;
+  border: 0;
+  border-radius: 20px 15px 18px 16px;
+  background: var(--fuji);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    inset 0 -5px 0 rgba(90, 78, 134, .09),
+    0 14px 18px -12px rgba(90, 78, 134, .5),
+    0 3px 0 rgba(90, 78, 134, .1);
+  transform: rotate(-2deg);
+}
+
+.stat:nth-child(3n+2) {
+  border-radius: 16px 20px 15px 19px;
+  transform: rotate(1.6deg);
+}
+
+.stat:nth-child(3n) {
+  border-radius: 18px 17px 21px 15px;
+  transform: rotate(-1.2deg);
 }
 
 .stat .stat-value,
 .stat .stat-label,
 .stat .stat-note {
-  color: var(--sec-ink);
+  color: var(--fuji-ink);
 }
 
 .stat-value {
   font-family: var(--serif);
-  font-size: clamp(30px, 5vw, 44px);
-  font-weight: 400;
+  font-size: clamp(36px, 5vw, 48px);
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: -.04em;
+  letter-spacing: -.045em;
   font-variant-numeric: lining-nums tabular-nums;
 }
 
 .stat-label {
-  margin-top: 9px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: .06em;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  line-height: 1.3;
   color: var(--ink-2);
   text-transform: uppercase;
 }
 
-.stat-note {
-  margin-top: 3px;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  color: var(--ink-3);
+.stat .stat-note {
+  margin-top: 5px;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(90, 78, 134, .8);
 }
 
+/* Stamp card: one inked rubber stamp per day, irregular rims by position. */
 .activity {
   display: grid;
-  grid-template-columns: repeat(14, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 7px;
   margin-top: 16px;
+  padding: 16px 16px 13px;
+  border: 1px solid rgba(90, 78, 134, .22);
+  border-radius: 18px 14px 17px 15px;
+  background: var(--card);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    0 12px 24px -22px rgba(90, 78, 134, .6);
 }
 
 .activity-day {
+  min-width: 0;
   text-align: center;
 }
 
 .activity-cell {
+  position: relative;
   display: grid;
   place-items: center;
-  height: 30px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--card);
-  font-family: var(--mono);
-  font-size: 8.5px;
-  color: var(--ink-3);
+  height: clamp(34px, 3.2vw, 44px);
+  border: 2px solid var(--fuji-ink);
+  border-radius: 8px 6px 9px 7px;
+  background: transparent;
+  font-family: var(--serif);
+  font-size: clamp(12px, 1.1vw, 16px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--fuji-ink);
+  font-variant-numeric: lining-nums tabular-nums;
+  transform: rotate(-.7deg);
+}
+
+/* Empty stamps: a faint inner impression, never over the numeral. */
+.activity-cell::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(90, 78, 134, .16);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .activity-cell.has {
-  border-color: transparent;
-  background: var(--sec-bg);
-  color: var(--sec-ink);
+  background: var(--fuji-ink);
+  color: #FCFBF8;
   font-weight: 600;
 }
 
+.activity-cell.has::before {
+  display: none;
+}
+
+.activity-cell.has::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(252, 251, 248, .38);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 .activity-cell.is-today {
-  box-shadow: inset 0 0 0 1px var(--ink);
+  outline: 1.5px solid var(--fuji-ink);
+  outline-offset: 2px;
+}
+
+.st-stampcard > .activity-day:nth-child(7n+1) .st-stamp {
+  border-radius: 9px 6px 8px 7px;
+  transform: rotate(-1deg);
+}
+
+.st-stampcard > .activity-day:nth-child(7n+2) .st-stamp {
+  border-radius: 6px 9px 7px 8px;
+  transform: rotate(.7deg);
+}
+
+.st-stampcard > .activity-day:nth-child(7n+3) .st-stamp {
+  border-radius: 8px 7px 10px 6px;
+  transform: rotate(-.5deg);
+}
+
+.st-stampcard > .activity-day:nth-child(7n+4) .st-stamp {
+  border-radius: 7px 8px 6px 9px;
+  transform: rotate(1deg);
+}
+
+.st-stampcard > .activity-day:nth-child(7n+5) .st-stamp {
+  border-radius: 10px 6px 8px 7px;
+  transform: rotate(-.8deg);
+}
+
+.st-stampcard > .activity-day:nth-child(7n+6) .st-stamp {
+  border-radius: 6px 7px 9px 8px;
+  transform: rotate(.5deg);
+}
+
+.st-stampcard > .activity-day:nth-child(7n) .st-stamp {
+  border-radius: 8px 10px 6px 7px;
+  transform: rotate(-.6deg);
 }
 
 .field-hint code,
@@ -2414,69 +3265,224 @@ h1 {
 }
 
 .activity-label {
-  margin-top: 5px;
+  margin-top: 6px;
   font-family: var(--mono);
-  font-size: 7.5px;
-  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1;
+  color: #6F6790;
 }
 
 .activity-legend {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 9px;
-  font-size: 10px;
-  color: var(--ink-3);
+  margin-top: 12px;
+  font-size: 13px;
+  color: #5F577F;
 }
 
 .subject-list {
   margin-top: 16px;
+  padding: 6px 16px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border: 1px solid rgba(90, 78, 134, .22);
+  border-radius: 18px 14px 18px 15px;
   background: var(--card);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    0 12px 24px -22px rgba(90, 78, 134, .6);
 }
 
 .subject-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--line);
+  gap: 14px;
+  padding: 15px 2px;
+  border-bottom: 1px dashed rgba(90, 78, 134, .2);
 }
 
 .subject-row:last-child {
   border-bottom: 0;
 }
 
+.subject-row .row-num {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--fuji-ink);
+  border-radius: 50% 46% 52% 48% / 48% 52% 46% 54%;
+  font-size: 11.5px;
+  color: var(--fuji-ink);
+}
+
 .subject-name {
   flex: 0 0 38%;
   overflow: hidden;
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .subject-bar {
   flex: 1;
+  min-width: 0;
 }
 
+/* Sticker bar: solid fuji ink with rounded ends and a paper rim. */
 .subject-bar .bar {
-  height: 3px;
-  background: var(--sec-bg);
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--pill);
+  background: #EAE4F7;
+  box-shadow: inset 0 0 0 1px rgba(90, 78, 134, .18);
 }
 
 .subject-pct {
-  flex: 0 0 42px;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--sec-ink);
+  flex: 0 0 48px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fuji-ink);
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .subject-row .bar-fill {
-  background: var(--sec-ink);
+  border-radius: var(--pill);
+  background: var(--fuji-ink);
+  box-shadow: inset 0 0 0 2px rgba(252, 251, 248, .5);
+}
+
+/* Flatten the tilt and tighten the card on small screens. */
+@media (max-width: 600px) {
+  .overall-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 22px 20px;
+    border-radius: 20px 16px 18px 15px;
+    transform: none;
+  }
+
+  .overall-value {
+    font-size: 64px;
+  }
+
+  .overall-value sup {
+    font-size: 16px;
+    vertical-align: 24px;
+  }
+
+  .overall-copy {
+    max-width: none;
+    font-size: 13px;
+  }
+
+  .overall-bar {
+    grid-column: auto;
+  }
+
+  .overall-bar p {
+    font-size: 12px;
+  }
+
+  .stat-grid {
+    gap: 8px;
+    padding: 4px 2px 2px;
+  }
+
+  .stat-grid .stat,
+  .stat-grid .stat:nth-child(3n+2),
+  .stat-grid .stat:nth-child(3n) {
+    padding: 14px 11px 13px;
+    transform: none;
+  }
+
+  .stat-grid .stat-value {
+    font-size: 32px;
+  }
+
+  .stat-grid .stat-label {
+    margin-top: 9px;
+    font-size: 13px;
+    letter-spacing: .04em;
+  }
+
+  .stat-grid .stat-note {
+    display: none;
+  }
+
+  .activity.st-stampcard {
+    gap: 4px;
+    padding: 10px 8px 9px;
+    border-radius: 14px 11px 13px 12px;
+  }
+
+  .st-stampcard > .activity-day:nth-child(n) .st-stamp {
+    height: 34px;
+    font-size: 13px;
+    transform: none;
+  }
+
+  /* Keep the inner impression against the border so it never touches digits. */
+  .st-stampcard .activity-cell::before,
+  .st-stampcard .activity-cell.has::after {
+    inset: 2px;
+  }
+
+  .st-stampcard .activity-label {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+
+  .st-stampcard .activity-legend {
+    margin-top: 10px;
+    font-size: 12px;
+  }
+
+  .st-stamp-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .st-stamp-grid .exam-card,
+  .st-stamp-grid .exam-card:nth-child(even) {
+    gap: 13px;
+    padding: 14px 15px;
+    transform: none;
+  }
+
+  .st-stamp-grid .exam-card .hanko {
+    --size: 74px;
+  }
+
+  .progress-courses {
+    padding: 4px 12px;
+  }
+
+  .progress-courses .progress-course {
+    padding: 13px 2px;
+  }
+
+  .progress-courses .progress-course-name .pct-pill {
+    font-size: 13px;
+  }
+
+  .subject-list {
+    padding: 4px 12px;
+  }
+
+  .subject-list .subject-name {
+    flex-basis: 40%;
+    font-size: 13.5px;
+  }
+
+  .subject-list .subject-pct {
+    flex-basis: 44px;
+    font-size: 13px;
+  }
 }
 
 .settings-grid {
@@ -3073,33 +4079,66 @@ h1 {
 
   .week-scroll {
     overflow: visible;
+    padding: 0;
     border: 0;
     background: transparent;
+    box-shadow: none;
   }
 
   .week-board {
     display: block;
     min-width: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .day-col {
     min-height: 0;
-    margin-bottom: 8px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-lg);
-    background: var(--card);
+    margin-bottom: 10px;
+    border: 1px solid #E7D9AE;
+    border-radius: 8px;
+    background: #FFFCF0;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .day-col:first-child {
+    border-radius: 8px;
   }
 
   .day-col:last-child {
-    border-right: 1px solid var(--line);
+    border-right: 1px solid #E7D9AE;
+    border-radius: 8px;
   }
 
   .day-col-head {
-    padding: 8px 12px;
+    margin: 0;
+    padding: 9px 12px;
+    transform: none;
+    border: 0;
+    border-bottom: 1px solid #E5CC78;
+    border-radius: 7px 7px 0 0;
+    background: #FFE79B;
+    box-shadow: none;
   }
 
   .day-blocks {
-    padding: 8px;
+    gap: 7px;
+    padding: 8px 9px 2px;
+  }
+
+  .t-block {
+    width: 100%;
+    min-height: 50px;
+    margin: 0;
+    padding: 9px 13px 10px;
+    border-radius: 5px;
+    transform: none;
+  }
+
+  .t-block:hover {
+    transform: none;
   }
 
   .day-col:not(:has(.t-block)) .day-blocks {
@@ -3111,7 +4150,8 @@ h1 {
   }
 
   .day-add {
-    margin: 0 8px 8px;
+    min-height: 36px;
+    margin: 4px 9px 9px;
   }
 
   .course-head {
