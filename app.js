@@ -583,7 +583,7 @@ function saveSyncMeta() {
 
 /* ---------- application boot ---------- */
 
-async function init() {
+function init() {
   bindEvents();
   if (els.sideDate) {
     els.sideDate.textContent = new Date().toLocaleDateString('en-GB', {
@@ -592,7 +592,11 @@ async function init() {
   }
 
   const raw = storageGet(STORE_KEY);
-  if (raw) {
+  if (!raw) {
+    /* New users always start blank. data.json is only pulled on demand. */
+    state = emptyState();
+    persistState('Started fresh');
+  } else {
     try {
       state = normalizeImported(JSON.parse(raw));
       setSaveState('Stored');
@@ -601,18 +605,6 @@ async function init() {
       persistState('Started fresh');
       toast('The saved data could not be read. A fresh plan was started.', true);
     }
-  } else {
-    let seeded = emptyState();
-    try {
-      const response = await fetch('data.json', { cache: 'no-store' });
-      if (response.ok) {
-        seeded = normalizeImported(await response.json());
-      }
-    } catch {
-      /* data.json is optional; an empty plan is fine */
-    }
-    state = seeded;
-    persistState('Seeded');
   }
 
   renderAll();
