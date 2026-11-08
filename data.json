@@ -1,0 +1,14 @@
+{
+  "courses": [],
+  "weeklyTemplate": {
+    "Mon": [],
+    "Tue": [],
+    "Wed": [],
+    "Thu": [],
+    "Fri": [],
+    "Sat": [],
+    "Sun": []
+  },
+  "dailyOverrides": {},
+  "exams": []
+}
