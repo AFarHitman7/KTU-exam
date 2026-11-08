@@ -736,9 +736,10 @@ h1 {
 
 .home-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-items: start;
+  align-content: start;
 }
 
 .widget {
@@ -2865,9 +2866,46 @@ h1 {
   }
 }
 
-@media (max-width: 1024px) {
+/* Two columns above the mobile breakpoint: Calendar owns the left column and
+   spans the full right-hand stack. The right column has three cards (Progress,
+   Today, Analytics), so it needs three rows; spanning only two would leave an
+   empty grid cell and a gap under the calendar. */
+@media (min-width: 901px) {
   .home-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, auto);
+    align-items: start;
+    align-content: start;
+  }
+
+  .home-grid > .widget {
+    align-self: start;
+    height: auto;
+    min-width: 0;
+  }
+
+  .home-grid > [data-section="calendar"] {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    order: 1;
+  }
+
+  .home-grid > [data-section="progress"] {
+    grid-column: 2;
+    grid-row: 1;
+    order: 2;
+  }
+
+  .home-grid > [data-section="today"] {
+    grid-column: 2;
+    grid-row: 2;
+    order: 3;
+  }
+
+  .home-grid > [data-section="analytics"] {
+    grid-column: 2;
+    grid-row: 3;
+    order: 4;
   }
 }
 
