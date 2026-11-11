@@ -12,6 +12,10 @@ const SYNC_META_KEY = 'ktu-sync-meta';
 const GH_API = 'https://api.github.com';
 const GH_HEADERS = { 'X-GitHub-Api-Version': '2022-11-28' };
 
+const STATUSES = ['not-started', 'almost', 'done'];
+const STATUS_LABELS = { 'not-started': 'Not started', almost: 'Almost done', done: 'Done' };
+const STATUS_WEIGHT = { 'not-started': 0, almost: 0.5, done: 1 };
+
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_LONG = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday',
@@ -207,6 +211,33 @@ function cleanTimestamp(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function cleanStatus(raw, doneFallback = false) {
+  if (STATUSES.includes(raw)) return raw;
+  return doneFallback ? 'done' : 'not-started';
+}
+
+function entityStatus(entity) {
+  if (entity && STATUSES.includes(entity.status)) return entity.status;
+  return entity && entity.done ? 'done' : 'not-started';
+}
+
+function applyStatus(entity, status) {
+  const next = cleanStatus(status);
+  const wasDone = entityStatus(entity) === 'done';
+  entity.status = next;
+  entity.done = next === 'done';
+  if (next !== 'done') {
+    entity.completedAt = null;
+  } else if (!wasDone || !cleanTimestamp(entity.completedAt)) {
+    entity.completedAt = new Date().toISOString();
+  }
+  return entity;
+}
+
+function nextStatus(status) {
+  return STATUSES[(STATUSES.indexOf(cleanStatus(status)) + 1) % STATUSES.length];
+}
+
 function storageGet(key) {
   try {
     return localStorage.getItem(key);
@@ -269,10 +300,12 @@ function normalizeTopic(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const title = typeof raw.title === 'string' ? raw.title.trim() : '';
   if (!title) return null;
-  const done = Boolean(raw.done);
+  const status = cleanStatus(raw.status, Boolean(raw.done));
+  const done = status === 'done';
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
     title,
+    status,
     done,
     completedAt: done ? cleanTimestamp(raw.completedAt) : null
   };
@@ -282,9 +315,14 @@ function normalizeModule(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const title = typeof raw.title === 'string' ? raw.title.trim() : '';
   if (!title) return null;
+  const status = cleanStatus(raw.status, Boolean(raw.done));
+  const done = status === 'done';
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
     title,
+    status,
+    done,
+    completedAt: done ? cleanTimestamp(raw.completedAt) : null,
     topics: Array.isArray(raw.topics)
       ? raw.topics.map(normalizeTopic).filter(Boolean)
       : []
@@ -295,10 +333,15 @@ function normalizeCourse(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const title = typeof raw.title === 'string' ? raw.title.trim() : '';
   if (!title) return null;
+  const status = cleanStatus(raw.status, Boolean(raw.done));
+  const done = status === 'done';
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
     title,
     examDate: isValidISODate(raw.examDate) ? raw.examDate : '',
+    status,
+    done,
+    completedAt: done ? cleanTimestamp(raw.completedAt) : null,
     modules: Array.isArray(raw.modules)
       ? raw.modules.map(normalizeModule).filter(Boolean)
       : []
@@ -374,28 +417,57 @@ function allTopics(course) {
   return course.modules.flatMap((module) => module.topics);
 }
 
+function effectiveUnits(course) {
+  const topics = allTopics(course);
+  if (topics.length) return topics.map((entity) => ({ entity, kind: 'topic' }));
+  if (course.modules.length) return course.modules.map((entity) => ({ entity, kind: 'module' }));
+  return [{ entity: course, kind: 'course' }];
+}
+
+function statOf(units) {
+  let done = 0;
+  let almost = 0;
+  let points = 0;
+  units.forEach(({ entity }) => {
+    const status = entityStatus(entity);
+    if (status === 'done') done += 1;
+    else if (status === 'almost') almost += 1;
+    points += STATUS_WEIGHT[status];
+  });
+  const kinds = new Set(units.map((unit) => unit.kind));
+  const total = units.length;
+  return {
+    total,
+    done,
+    almost,
+    points,
+    pct: total ? Math.round((points / total) * 100) : 0,
+    unitLabel: total && kinds.size === 1 ? [...kinds][0] : 'item'
+  };
+}
+
 function moduleStats(module) {
-  const total = module.topics.length;
-  const done = module.topics.filter((topic) => topic.done).length;
-  return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  const units = module.topics.length
+    ? module.topics.map((entity) => ({ entity, kind: 'topic' }))
+    : [{ entity: module, kind: 'module' }];
+  return statOf(units);
 }
 
 function courseStats(course) {
-  const topics = allTopics(course);
-  const total = topics.length;
-  const done = topics.filter((topic) => topic.done).length;
-  return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  return statOf(effectiveUnits(course));
 }
 
 function overallStats() {
-  let total = 0;
-  let done = 0;
-  state.courses.forEach((course) => {
-    const stats = courseStats(course);
-    total += stats.total;
-    done += stats.done;
-  });
-  return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  return statOf(state.courses.flatMap(effectiveUnits));
+}
+
+function unitCountLabel(stats) {
+  return countLabel(stats.total, stats.unitLabel, `${stats.unitLabel}s`);
+}
+
+function progressCountLabel(stats) {
+  const phrase = `${stats.done} of ${unitCountLabel(stats)}`;
+  return stats.almost > 0 ? `${phrase} · ${stats.almost} almost` : phrase;
 }
 
 function findTopic(courseId, moduleId, topicId) {
@@ -459,14 +531,17 @@ function nearestExam() {
   return upcomingExams()[0] || null;
 }
 
-function completedTopics() {
+function completedUnits() {
   const items = [];
   state.courses.forEach((course) => {
-    course.modules.forEach((module) => {
-      module.topics.forEach((topic) => {
-        if (topic.done && topic.completedAt) {
-          items.push({ course, module, topic, date: localDateFromTimestamp(topic.completedAt), at: topic.completedAt });
-        }
+    effectiveUnits(course).forEach((unit) => {
+      if (entityStatus(unit.entity) !== 'done' || !unit.entity.completedAt) return;
+      items.push({
+        course,
+        entity: unit.entity,
+        kind: unit.kind,
+        date: localDateFromTimestamp(unit.entity.completedAt),
+        at: unit.entity.completedAt
       });
     });
   });
@@ -474,11 +549,11 @@ function completedTopics() {
 }
 
 function completedOn(date) {
-  return completedTopics().filter((item) => item.date === date).length;
+  return completedUnits().filter((item) => item.date === date).length;
 }
 
 function streakDays() {
-  const days = new Set(completedTopics().map((item) => item.date).filter(Boolean));
+  const days = new Set(completedUnits().map((item) => item.date).filter(Boolean));
   if (!days.size) return 0;
   let cursor = todayISO();
   if (!days.has(cursor)) cursor = addDaysISO(cursor, -1);
@@ -495,7 +570,7 @@ function weekCompletions() {
   const mondayOffset = (now.getDay() + 6) % 7;
   const monday = addDaysISO(todayISO(), -mondayOffset);
   const counts = {};
-  completedTopics().forEach((item) => {
+  completedUnits().forEach((item) => {
     if (!item.date) return;
     counts[item.date] = (counts[item.date] || 0) + 1;
   });
@@ -509,7 +584,7 @@ function weekCompletions() {
 function last14Days() {
   const today = todayISO();
   const counts = {};
-  completedTopics().forEach((item) => {
+  completedUnits().forEach((item) => {
     if (item.date) counts[item.date] = (counts[item.date] || 0) + 1;
   });
   const days = [];
@@ -1022,7 +1097,7 @@ function renderHome() {
         <p class="eyebrow">${esc(formatLongDate(today))}</p>
         <h1 id="view-home-title">${greetingLabel()}</h1>
         <p class="lede">${overall.total
-          ? `${overall.done} of ${overall.total} topics done. Here is the plan, at a glance.`
+          ? `${progressCountLabel(overall)} done. Here is the plan, at a glance.`
           : 'A quiet place to see your whole plan at once.'}</p>
       </div>
       <div class="head-actions home-actions">${countdownPillHtml()}</div>
@@ -1055,7 +1130,7 @@ function renderHome() {
           <div class="st-mini-progress-top">
             <p class="widget-big" aria-label="${overall.pct}% complete">${overall.pct}<sup>%</sup></p>
             <div class="st-mini-progress-copy">
-              <strong>${overall.done} of ${overall.total} topics</strong>
+              <strong>${progressCountLabel(overall)}</strong>
               <span>${countLabel(state.courses.length, 'course')} in the plan</span>
             </div>
           </div>
@@ -1088,8 +1163,8 @@ function renderHome() {
           <div class="mini-stat"><b>${week}</b><span>This week</span></div>
           <div class="mini-stat"><b>${overall.done}</b><span>Done</span></div>
         </div>
-        <div class="activity st-stampcard mini-stamp-strip" role="img" aria-label="Topic check-ins over the last 14 days">
-          ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'topic')}">
+        <div class="activity st-stampcard mini-stamp-strip" role="img" aria-label="Check-ins over the last 14 days">
+          ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'check-in')}">
             <div class="activity-cell st-stamp${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}">${day.day}</div>
             <div class="activity-label">${day.weekday}</div>
           </div>`).join('')}
@@ -1144,7 +1219,7 @@ function renderToday() {
       <div>
         <p class="lede">${esc(lede)}</p>
         <div class="today-meta">
-          <span><b>${checkedToday}</b> ${checkedToday === 1 ? 'topic' : 'topics'} checked today</span>
+          <span><b>${checkedToday}</b> ${checkedToday === 1 ? 'check-in' : 'check-ins'} checked today</span>
           <span><b>${overall.pct}%</b> complete overall</span>
         </div>
       </div>
@@ -1245,7 +1320,7 @@ function renderCourses() {
     ${state.courses.length ? `
       <div class="overall-line">
         <strong>${overall.pct}%</strong>
-        <span>${overall.done} of ${overall.total} topics complete</span>
+        <span>${progressCountLabel(overall)} complete</span>
         <span>·</span>
         <span>${countLabel(examCount, 'exam')} ahead</span>
       </div>
@@ -1261,6 +1336,9 @@ function renderCourses() {
 
 function courseCardHtml(course, index = 0) {
   const stats = courseStats(course);
+  const unitMeta = stats.unitLabel === 'module'
+    ? countLabel(course.modules.length, 'module')
+    : `${countLabel(course.modules.length, 'module')} · ${unitCountLabel(stats)}`;
   const examDays = course.examDate ? diffDays(course.examDate, todayISO()) : null;
   const examText = course.examDate
     ? `${examDays > 0 ? `${examDays} days` : examDays === 0 ? 'today' : 'past'}`
@@ -1277,7 +1355,7 @@ function courseCardHtml(course, index = 0) {
       <header class="course-head">
         <div class="course-head-main">
           <div class="course-meta">
-            <span class="cf-folder-count">${countLabel(course.modules.length, 'module')} · ${countLabel(stats.total, 'topic')}</span>
+            <span class="cf-folder-count">${unitMeta}</span>
             ${course.examDate ? `<span class="exam-chip">Exam ${esc(formatShortDate(course.examDate))}${examText ? ` · ${esc(examText)}` : ''}</span>` : ''}
           </div>
         </div>
@@ -1503,18 +1581,19 @@ function renderMore() {
 function progressHtml() {
   const overall = overallStats();
   const upcoming = upcomingExams();
+  const unitWords = `${overall.unitLabel}s`;
   return `
     <div class="overall-panel st-overall-sticker">
       <div>
-        <p class="overall-label">All topics complete</p>
+        <p class="overall-label">All ${unitWords} complete</p>
         <p class="overall-value">${overall.pct}<sup>%</sup></p>
       </div>
       <div class="overall-copy">
-        <strong>${overall.done} of ${overall.total} topics</strong> checked across ${countLabel(state.courses.length, 'course')}. ${overall.total === 0 ? 'Add a course to start the count.' : overall.done === overall.total ? 'Every topic is complete.' : 'The rest is just small, repeatable steps.'}
+        <strong>${progressCountLabel(overall)}</strong> checked across ${countLabel(state.courses.length, 'course')}. ${overall.total === 0 ? 'Add a course to start the count.' : overall.done === overall.total ? `Every ${overall.unitLabel} is complete.` : 'The rest is just small, repeatable steps.'}
       </div>
       <div class="overall-bar">
         <div class="bar" aria-hidden="true"><span class="bar-fill" style="width:${overall.pct}%"></span></div>
-        <p>Progress is saved from topic check-ins, not from a timer.</p>
+        <p>Progress is saved from check-ins, not from a timer.</p>
       </div>
     </div>
 
@@ -1544,7 +1623,7 @@ function progressHtml() {
     <section class="section" aria-labelledby="progress-courses">
       <div class="section-head">
         <h2 class="section-title" id="progress-courses">By course</h2>
-        <span class="section-aside">${countLabel(overall.total, 'topic')}</span>
+        <span class="section-aside">${unitCountLabel(overall)}</span>
       </div>
       ${state.courses.length
         ? `<div class="progress-courses st-sticker-card">
@@ -1584,12 +1663,14 @@ function analyticsHtml() {
   const week = weekCompletions();
   const overall = overallStats();
   const days = last14Days();
+  const unitWords = `${overall.unitLabel}s`;
+  const unitTitle = unitWords.charAt(0).toUpperCase() + unitWords.slice(1);
 
   return `
     <div class="stat-grid st-stat-grid">
       ${stArtStatCard(streak, 'Day streak', 'Consecutive check-ins')}
-      ${stArtStatCard(week, 'This week', 'Topics checked')}
-      ${stArtStatCard(overall.done, 'Topics done', `of ${overall.total} total`)}
+      ${stArtStatCard(week, 'This week', 'Check-ins')}
+      ${stArtStatCard(overall.done, `${unitTitle} done`, `of ${overall.total} total`)}
     </div>
 
     <section class="section" aria-labelledby="analytics-activity">
@@ -1597,8 +1678,8 @@ function analyticsHtml() {
         <h2 class="section-title" id="analytics-activity">Last 14 days</h2>
         <span class="section-aside">${week} this week</span>
       </div>
-      <div class="activity st-stampcard" role="img" aria-label="Topic check-ins over the last 14 days">
-        ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'topic')}">
+      <div class="activity st-stampcard" role="img" aria-label="Check-ins over the last 14 days">
+        ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'check-in')}">
           <div class="activity-cell st-stamp${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}">${day.day}</div>
           <div class="activity-label">${day.weekday}</div>
         </div>`).join('')}
@@ -1623,7 +1704,7 @@ function analyticsHtml() {
               </div>`;
             }).join('')}
           </div>`
-        : `<div class="cal-empty">Add a course and check topics to see subject progress. <button class="text-btn" type="button" data-action="add-course">Add a course</button></div>`}
+        : `<div class="cal-empty">Add a course and mark progress to see subject progress. <button class="text-btn" type="button" data-action="add-course">Add a course</button></div>`}
     </section>
   `;
 }
@@ -1659,7 +1740,7 @@ function syncStatusHtml() {
 
 function settingsHtml() {
   const pat = storageGet(PAT_KEY) || '';
-  const topics = overallStats();
+  const overall = overallStats();
   const disabled = ui.syncBusy ? ' disabled' : '';
 
   return `
@@ -1668,7 +1749,7 @@ function settingsHtml() {
         <div class="settings-card-head">
           <div>
             <h2 id="settings-data">Your data</h2>
-            <p>${countLabel(state.courses.length, 'course')} · ${countLabel(topics.total, 'topic')} · saved in this browser</p>
+            <p>${countLabel(state.courses.length, 'course')} · ${unitCountLabel(overall)} · saved in this browser</p>
           </div>
           <span class="section-aside">JSON</span>
         </div>
@@ -1850,7 +1931,15 @@ function openCourseDialog(courseId = null) {
         course.title = title;
         course.examDate = examDate;
       } else {
-        state.courses.push({ id: uid(), title, examDate, modules: [] });
+        state.courses.push({
+          id: uid(),
+          title,
+          examDate,
+          status: 'not-started',
+          done: false,
+          completedAt: null,
+          modules: []
+        });
       }
       commit();
     }
@@ -1879,7 +1968,14 @@ function openModuleDialog(courseId, moduleId = null) {
       if (module) {
         module.title = title;
       } else {
-        course.modules.push({ id: uid(), title, topics: [] });
+        course.modules.push({
+          id: uid(),
+          title,
+          status: 'not-started',
+          done: false,
+          completedAt: null,
+          topics: []
+        });
       }
       commit();
     }
@@ -1909,7 +2005,7 @@ function openTopicDialog(courseId, moduleId, topicId = null) {
       if (topic) {
         topic.title = title;
       } else {
-        module.topics.push({ id: uid(), title, done: false, completedAt: null });
+        module.topics.push({ id: uid(), title, status: 'not-started', done: false, completedAt: null });
       }
       commit();
     }
@@ -1919,11 +2015,11 @@ function openTopicDialog(courseId, moduleId, topicId = null) {
 function askDeleteCourse(courseId) {
   const course = courseById(courseId);
   if (!course) return;
-  const stats = courseStats(course);
+  const topicCount = allTopics(course).length;
   confirmDialog({
     eyebrow: 'Delete course',
     title: `Delete “${course.title}”?`,
-    message: `This removes <strong>${countLabel(course.modules.length, 'module')}</strong>, <strong>${countLabel(stats.total, 'topic')}</strong> and any linked exams. Timetable blocks for this course will stay, without a course label. This cannot be undone.`,
+    message: `This removes <strong>${countLabel(course.modules.length, 'module')}</strong>, <strong>${countLabel(topicCount, 'topic')}</strong> and any linked exams. Timetable blocks for this course will stay, without a course label. This cannot be undone.`,
     confirmLabel: 'Delete course',
     onConfirm: () => {
       state.courses = state.courses.filter((item) => item.id !== courseId);
@@ -1948,11 +2044,12 @@ function askDeleteModule(courseId, moduleId) {
   const course = courseById(courseId);
   const module = findModule(course, moduleId);
   if (!course || !module) return;
-  const stats = moduleStats(module);
   confirmDialog({
     eyebrow: course.title,
     title: `Delete “${module.title}”?`,
-    message: `This removes the module and its <strong>${countLabel(stats.total, 'topic')}</strong>. This cannot be undone.`,
+    message: module.topics.length
+      ? `This removes the module and its <strong>${countLabel(module.topics.length, 'topic')}</strong>. This cannot be undone.`
+      : 'This removes the module. This cannot be undone.',
     confirmLabel: 'Delete module',
     onConfirm: () => {
       course.modules = course.modules.filter((item) => item.id !== moduleId);
@@ -1990,8 +2087,7 @@ function toggleTopicCheckbox(input) {
   const { course, module, topic } = input.dataset;
   const target = findTopic(course, module, topic);
   if (!target) return;
-  target.done = input.checked;
-  target.completedAt = input.checked ? new Date().toISOString() : null;
+  applyStatus(target, input.checked ? 'done' : 'not-started');
   commit(`topic-${target.id}`);
 }
 
@@ -2331,11 +2427,11 @@ async function handleImportFile() {
     const text = await file.text();
     const parsed = JSON.parse(text.replace(/^\uFEFF/, ''));
     const next = normalizeImported(parsed);
-    const stats = next.courses.reduce((total, course) => total + allTopics(course).length, 0);
+    const stats = statOf(next.courses.flatMap(effectiveUnits));
     confirmDialog({
       eyebrow: 'Import JSON',
       title: 'Replace this browser’s data?',
-      message: `This backup has <strong>${countLabel(next.courses.length, 'course')}</strong>, <strong>${countLabel(stats, 'topic')}</strong> and <strong>${countLabel(next.exams.length, 'exam')}</strong>. Importing replaces everything currently stored here.`,
+      message: `This backup has <strong>${countLabel(next.courses.length, 'course')}</strong>, <strong>${unitCountLabel(stats)}</strong> and <strong>${countLabel(next.exams.length, 'exam')}</strong>. Importing replaces everything currently stored here.`,
       confirmLabel: 'Replace data',
       onConfirm: () => {
         state = next;
