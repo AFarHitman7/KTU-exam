@@ -518,6 +518,38 @@ function ensureOverride(date) {
   return state.dailyOverrides[date];
 }
 
+/* First day after `from` that has any block, earliest block first. */
+function nextScheduledBlock({ from = todayISO(), horizonDays = 30 } = {}) {
+  for (let offset = 1; offset <= horizonDays; offset += 1) {
+    const date = addDaysISO(from, offset);
+    const blocks = sortBlocks(blocksForDate(date));
+    if (blocks.length) return { date, block: blocks[0], blocks };
+  }
+  return null;
+}
+
+/* Copy a future block into today. The source day and weekly template stay put. */
+function startAheadBlock(sourceDate, sourceBlockId) {
+  if (!isValidISODate(sourceDate)) return;
+  const source = blocksForDate(sourceDate).find((block) => block.id === sourceBlockId);
+  if (!source) {
+    toast('That block is no longer there. Nothing was added.', true);
+    return;
+  }
+  const today = todayISO();
+  const copy = {
+    id: uid(),
+    title: source.title,
+    courseId: source.courseId,
+    start: source.start,
+    end: source.end,
+    done: false
+  };
+  ensureOverride(today).push(copy);
+  commit(`block-${copy.id}`);
+  toast(`"${source.title}" added to today — you are a day ahead.`);
+}
+
 function allExams() {
   const exams = state.exams.map((exam) => ({ ...exam, virtual: false }));
   state.courses.forEach((course) => {
@@ -798,6 +830,9 @@ function handleClick(event) {
     case 'update-block-progress':
       openBlockProgressDialog(d.date, d.id);
       break;
+    case 'start-ahead':
+      startAheadBlock(d.date, d.id);
+      break;
     case 'add-template-block':
       openTemplateBlockDialog({ day: d.day || weekdayKey(todayISO()) });
       break;
@@ -900,7 +935,10 @@ function renderAll() {
   if (ui.activeView === 'more') document.body.dataset.sub = ui.moreTab || 'progress';
   else delete document.body.dataset.sub;
   document.querySelectorAll('.view').forEach((section) => {
-    section.hidden = section.dataset.view !== ui.activeView;
+    const active = section.dataset.view === ui.activeView;
+    section.hidden = !active;
+    /* One get-ahead prompt lives at a time; drop a stale copy left in a hidden view. */
+    if (!active) section.querySelectorAll('.ahead-card, .ahead-panel').forEach((node) => node.remove());
   });
   document.querySelectorAll('[data-nav]').forEach((button) => {
     const active = button.dataset.nav === ui.activeView;
@@ -1005,6 +1043,52 @@ function scheduleListHtml(blocks, date) {
   </ul>`;
 }
 
+function aheadFacts(ahead) {
+  const { block, date } = ahead;
+  return {
+    block,
+    course: courseById(block.courseId),
+    when: `${DAY_LONG[weekdayKey(date)]} · ${formatShortDate(date)}`,
+    time: block.start ? `${block.start}${block.end ? `–${block.end}` : ''}` : 'Any time'
+  };
+}
+
+function aheadCardHtml(ahead, date) {
+  const { block, course, when, time } = aheadFacts(ahead);
+  return `<div class="ahead-card">
+    <span class="ahead-tape" aria-hidden="true"></span>
+    <div class="ahead-main">
+      <p class="ahead-kicker">Nothing today · get ahead</p>
+      <h3 class="ahead-title">${esc(block.title)}</h3>
+      <p class="ahead-meta">
+        <span>${esc(when)}</span>
+        <span aria-hidden="true">·</span>
+        <span>${esc(time)}</span>
+        <span aria-hidden="true">·</span>
+        <span>${esc(course ? course.title : 'Study block')}</span>
+      </p>
+    </div>
+    <div class="ahead-actions">
+      <button class="btn btn--primary" type="button" data-action="start-ahead" data-date="${esc(ahead.date)}" data-id="${esc(block.id)}">Start it today</button>
+      <button class="btn" type="button" data-action="add-block" data-date="${esc(date)}">${ICONS.plus} Add a block</button>
+      <button class="btn" type="button" data-nav="timetable">Open timetable</button>
+    </div>
+  </div>`;
+}
+
+function aheadPanelHtml(ahead) {
+  const { block, course, when, time } = aheadFacts(ahead);
+  return `<div class="ahead-panel">
+    <span class="ahead-tape" aria-hidden="true"></span>
+    <p class="ahead-kicker">Nothing today · get ahead</p>
+    <div class="ahead-panel-main">
+      <strong class="ahead-panel-title">${esc(block.title)}</strong>
+      <span class="ahead-panel-meta">${esc(when)} · ${esc(time)}${course ? ` · ${esc(course.title)}` : ''}</span>
+    </div>
+    <button class="btn btn--sm ahead-panel-action" type="button" data-action="start-ahead" data-date="${esc(ahead.date)}" data-id="${esc(block.id)}">Start it today</button>
+  </div>`;
+}
+
 function examRowHtml(exam) {
   const course = courseById(exam.courseId);
   return `<div class="exam-row">
@@ -1061,6 +1145,7 @@ function renderHome() {
   const overall = overallStats();
   const exams = upcomingExams();
   const blocks = sortBlocks(blocksForDate(today));
+  const ahead = blocks.length ? null : nextScheduledBlock();
   const doneBlocks = blocks.filter((block) => block.done).length;
   const streak = streakDays();
   const week = weekCompletions();
@@ -1169,7 +1254,9 @@ function renderHome() {
         ${widgetHeadHtml({ id: 'home-today-title', title: 'Today', nav: 'today' })}
         ${blocks.length
           ? `<ul class="widget-list">${blockRows}</ul>`
-          : '<p class="widget-empty">Nothing scheduled today. A good day for one small block.</p>'}
+          : ahead
+            ? aheadPanelHtml(ahead)
+            : '<p class="widget-empty">Nothing scheduled today. A good day for one small block.</p>'}
         <div class="widget-foot">
           <button class="text-btn" type="button" data-action="add-block" data-date="${today}"><span aria-hidden="true">+</span> Add block</button>
           <span class="widget-note">${blocks.length ? `${doneBlocks}/${blocks.length} done` : 'No blocks'}</span>
@@ -1204,6 +1291,7 @@ function renderToday() {
   const root = document.getElementById('view-today');
   const date = todayISO();
   const blocks = blocksForDate(date);
+  const ahead = blocks.length ? null : nextScheduledBlock();
   const exam = nearestExam();
   const overall = overallStats();
   const checkedToday = completedOn(date);
@@ -1213,7 +1301,9 @@ function renderToday() {
 
   let lede;
   if (!blocks.length) {
-    lede = 'Nothing scheduled today. Add a block, or shape the week in Timetable.';
+    lede = ahead
+      ? 'Nothing scheduled today. The next block is ready when you are.'
+      : 'Nothing scheduled today. Add a block, or shape the week in Timetable.';
   } else if (allDone) {
     lede = `${countLabel(blocks.length, 'block')} planned. All done for today.`;
   } else {
@@ -1256,12 +1346,14 @@ function renderToday() {
       </div>
       ${blocks.length
         ? `<div class="panel panel-pad">${scheduleListHtml(blocks, date)}</div>`
-        : emptyHtml({
-          title: 'No study blocks today',
-          copy: 'Add a one-off block for today, or set a weekly rhythm you can keep.',
-          actions: `<button class="btn btn--primary" type="button" data-action="add-block" data-date="${date}">${ICONS.plus} Add a block</button>
-            <button class="btn" type="button" data-nav="timetable">Open timetable</button>`
-        })}
+        : ahead
+          ? aheadCardHtml(ahead, date)
+          : emptyHtml({
+            title: 'No study blocks today',
+            copy: 'Add a one-off block for today, or set a weekly rhythm you can keep.',
+            actions: `<button class="btn btn--primary" type="button" data-action="add-block" data-date="${date}">${ICONS.plus} Add a block</button>
+              <button class="btn" type="button" data-nav="timetable">Open timetable</button>`
+          })}
     </section>
   `;
 }
