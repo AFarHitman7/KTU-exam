@@ -32,6 +32,7 @@ const ICONS = {
   edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>',
   trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/></svg>',
   move: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  progress: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M7 16V9M12 16V5M17 16v-4"/></svg>',
   chevron: '<svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
 };
 
@@ -424,6 +425,23 @@ function effectiveUnits(course) {
   return [{ entity: course, kind: 'course' }];
 }
 
+/* The same effective-unit rule as progress, with the module kept so the
+   finished-block dialog can name where each topic lives. */
+function blockProgressLevel(course) {
+  const topics = allTopics(course);
+  if (topics.length) {
+    const units = [];
+    course.modules.forEach((module) => {
+      module.topics.forEach((entity) => units.push({ entity, kind: 'topic', module }));
+    });
+    return { kind: 'topic', units };
+  }
+  if (course.modules.length) {
+    return { kind: 'module', units: course.modules.map((entity) => ({ entity, kind: 'module' })) };
+  }
+  return { kind: 'course', units: [{ entity: course, kind: 'course' }] };
+}
+
 function statOf(units) {
   let done = 0;
   let almost = 0;
@@ -777,6 +795,9 @@ function handleClick(event) {
     case 'move-block':
       openMoveDialog(d.date, d.id);
       break;
+    case 'update-block-progress':
+      openBlockProgressDialog(d.date, d.id);
+      break;
     case 'add-template-block':
       openTemplateBlockDialog({ day: d.day || weekdayKey(todayISO()) });
       break;
@@ -974,6 +995,7 @@ function scheduleListHtml(blocks, date) {
           <div class="block-course">${course ? esc(course.title) : 'Study block'}</div>
         </div>
         <div class="row-actions">
+          ${done && course ? `<button class="icon-btn" type="button" data-action="update-block-progress" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Update progress" title="Update progress">${ICONS.progress}</button>` : ''}
           <button class="icon-btn" type="button" data-action="move-block" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Move ${title} to another day" title="Move">${ICONS.move}</button>
           <button class="icon-btn" type="button" data-action="edit-block" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Edit ${title}" title="Edit">${ICONS.edit}</button>
           <button class="icon-btn icon-btn--danger" type="button" data-action="delete-block" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Delete ${title}" title="Delete">${ICONS.trash}</button>
@@ -2294,6 +2316,71 @@ function toggleBlockCheckbox(input) {
   if (!block) return;
   block.done = input.checked;
   commit(`block-${block.id}`);
+  if (!input.checked) return;
+  if (!courseById(block.courseId)) {
+    toast('Block finished. Link a course to track progress.');
+    return;
+  }
+  openBlockProgressDialog(date, block.id);
+}
+
+/* ---------- finished-block progress dialog ---------- */
+
+function statusChoiceHtml(unit, kind, focusFirst) {
+  const current = entityStatus(unit.entity);
+  const name = `progress-${kind}-${unit.entity.id}`;
+  return `<div class="status-row">
+    <div class="status-row-main">
+      <span class="status-row-title">${esc(unit.entity.title)}</span>
+      ${unit.module ? `<span class="status-row-module">${esc(unit.module.title)}</span>` : ''}
+    </div>
+    <div class="status-choices" role="radiogroup" aria-label="${esc(unit.entity.title)} status">
+      ${STATUSES.map((status) => `<label class="status-choice">
+        <input type="radio" name="${esc(name)}" value="${status}" data-status-kind="${kind}" data-status-id="${esc(unit.entity.id)}"${current === status ? ' checked' : ''}${focusFirst && current === status ? ' autofocus' : ''}>
+        <span>${esc(STATUS_LABELS[status])}</span>
+      </label>`).join('')}
+    </div>
+  </div>`;
+}
+
+function openBlockProgressDialog(date, blockId) {
+  if (!isValidISODate(date)) return;
+  const block = blocksForDate(date).find((item) => item.id === blockId);
+  if (!block) return;
+  const course = courseById(block.courseId);
+  if (!course) return;
+
+  const level = blockProgressLevel(course);
+  const noun = level.kind === 'topic' ? 'Topics' : level.kind === 'module' ? 'Modules' : 'Course';
+  const rows = level.units
+    .map((unit, index) => statusChoiceHtml(unit, level.kind, index === 0))
+    .join('');
+
+  openModal({
+    eyebrow: `${course.title} · ${formatShortDate(date)}`,
+    title: 'What did you cover?',
+    submitLabel: 'Save progress',
+    body: `
+      <p class="modal-copy">Mark what you covered in this block. Partial work counts as <strong>Almost done</strong>, so it still moves ${esc(course.title)} forward.</p>
+      <div class="status-grid-wrap">
+        <p class="status-grid-label">${noun} in ${esc(course.title)}</p>
+        <div class="status-grid">${rows}</div>
+      </div>
+    `,
+    onSubmit: (formData, form) => {
+      form.querySelectorAll('input[type="radio"][data-status-id]:checked').forEach((input) => {
+        const unit = level.units.find((item) => (
+          item.kind === input.dataset.statusKind && item.entity.id === input.dataset.statusId
+        ));
+        if (unit) applyStatus(unit.entity, input.value);
+      });
+      ensureOverride(date);
+      const target = state.dailyOverrides[date].find((item) => item.id === blockId);
+      if (target) target.done = true;
+      commit();
+      toast(`Progress saved for ${course.title}.`);
+    }
+  });
 }
 
 /* ---------- timetable template dialogs ---------- */
