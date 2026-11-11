@@ -1447,7 +1447,7 @@ function renderCourses() {
     ${state.courses.length ? `
       <div class="overall-line">
         <strong>${overall.pct}%</strong>
-        <span>${progressCountLabel(overall)}${allDone ? ' complete' : ' checked'}</span>
+        <span>${progressCountLabel(overall)}${allDone ? ' complete' : overall.almost > 0 ? '' : ' checked'}</span>
         <span>·</span>
         <span>${countLabel(examCount, 'exam')} ahead</span>
       </div>
@@ -2345,7 +2345,7 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
               ));
               if (duplicate) {
                 commit();
-                toast(`This block is already in the ${DAY_LONG[weekday]} weekly timetable.`);
+                toast(`This block is already in the ${DAY_LONG[weekday]} weekly timetable. The daily edit was saved.`);
                 return;
               }
               templateBlock = { id: block.id, title: fields.title, courseId, start: fields.start, end: fields.end };
@@ -2432,10 +2432,12 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
     const hint = els.modal.querySelector('[data-sync-hint]');
     if (dateInput && syncInput && hint) {
       const originalHint = hint.textContent;
+      let restoreChecked = syncInput.checked;
       const updateSyncAvailability = () => {
         const differs = dateInput.value !== date;
+        if (differs && !syncInput.disabled) restoreChecked = syncInput.checked;
         syncInput.disabled = differs;
-        if (differs) syncInput.checked = false;
+        syncInput.checked = differs ? false : restoreChecked;
         hint.textContent = differs
           ? 'The date changed. The weekly copy stays as it is.'
           : originalHint;

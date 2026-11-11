@@ -10,11 +10,12 @@ plain HTML, CSS and JavaScript, designed to live on GitHub Pages.
   tri-state status — Not started, Almost done or Done — and progress falls back from
   topics to modules to the course itself.
 - **Timetable** — a Monday–Sunday weekly template. Today has its own daily copy where
-  blocks can be added, moved, edited or checked off without changing the template.
+  blocks can be added, moved, edited or checked off without changing the template
+  unless the weekly box is ticked.
   In the block dialog, tick the weekly box to carry a calendar block into the matching
   weekday of the template.
 - **Today** — the day's blocks, with a get-ahead card when the day is empty that offers
-  the next scheduled block from the week.
+  the next scheduled block within the next 30 days.
 - **Calendar** — month grid with a dot for days that have study blocks and a red
   circle for exam dates. Add and edit exams per day.
 - **Progress** — overall completion and bars per course. Each course counts its topics
