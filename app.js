@@ -753,6 +753,9 @@ function handleClick(event) {
     case 'toggle-module':
       toggleModule(d.module);
       break;
+    case 'cycle-status':
+      cycleStatus(d);
+      break;
     case 'add-topic':
       openTopicDialog(d.course, d.module);
       break;
@@ -841,13 +844,8 @@ function handleClick(event) {
 
 function handleChange(event) {
   const target = event.target;
-  if (!target.matches('input[type="checkbox"][data-action]')) return;
-
-  if (target.dataset.action === 'toggle-topic') {
-    toggleTopicCheckbox(target);
-  } else if (target.dataset.action === 'toggle-block') {
-    toggleBlockCheckbox(target);
-  }
+  if (!target.matches('input[type="checkbox"][data-action="toggle-block"]')) return;
+  toggleBlockCheckbox(target);
 }
 
 function handleInput(event) {
@@ -1336,9 +1334,10 @@ function renderCourses() {
 
 function courseCardHtml(course, index = 0) {
   const stats = courseStats(course);
-  const unitMeta = stats.unitLabel === 'module'
-    ? countLabel(course.modules.length, 'module')
-    : `${countLabel(course.modules.length, 'module')} · ${unitCountLabel(stats)}`;
+  const moduleCount = course.modules.length;
+  const unitMeta = moduleCount
+    ? `${countLabel(moduleCount, 'module')}${stats.unitLabel === 'module' ? '' : ` · ${unitCountLabel(stats)}`}`
+    : unitCountLabel(stats);
   const examDays = course.examDate ? diffDays(course.examDate, todayISO()) : null;
   const examText = course.examDate
     ? `${examDays > 0 ? `${examDays} days` : examDays === 0 ? 'today' : 'past'}`
@@ -1356,6 +1355,7 @@ function courseCardHtml(course, index = 0) {
         <div class="course-head-main">
           <div class="course-meta">
             <span class="cf-folder-count">${unitMeta}</span>
+            ${moduleCount ? '' : statusChipHtml(course, `data-kind="course" data-course="${esc(course.id)}" data-focus="status-course-${esc(course.id)}"`)}
             ${course.examDate ? `<span class="exam-chip">Exam ${esc(formatShortDate(course.examDate))}${examText ? ` · ${esc(examText)}` : ''}</span>` : ''}
           </div>
         </div>
@@ -1379,13 +1379,17 @@ function courseCardHtml(course, index = 0) {
 function moduleHtml(course, module) {
   const stats = moduleStats(module);
   const collapsed = ui.collapsedModules.has(module.id);
-  return `<section class="module cf-index-card" aria-label="${esc(module.title)}">
+  const countText = module.topics.length
+    ? stats.almost > 0 ? `${stats.almost} almost` : `${stats.done}/${stats.total}`
+    : '';
+  return `<section class="module cf-index-card${module.topics.length ? '' : ' module--bare'}" aria-label="${esc(module.title)}">
     <div class="module-head">
       <button class="module-toggle cf-index-tab" type="button" data-action="toggle-module" data-module="${esc(module.id)}" aria-expanded="${!collapsed}" aria-controls="module-${esc(module.id)}">
         ${ICONS.chevron}
         <span class="module-title">${esc(module.title)}</span>
-        <span class="module-count">${stats.done}/${stats.total}</span>
+        ${countText ? `<span class="module-count">${countText}</span>` : ''}
       </button>
+      ${module.topics.length ? '' : statusChipHtml(module, `data-kind="module" data-course="${esc(course.id)}" data-module="${esc(module.id)}" data-focus="status-module-${esc(module.id)}"`)}
       <span class="module-pct">${stats.pct}%</span>
       <div class="module-actions">
         <button class="icon-btn" type="button" data-action="edit-module" data-course="${esc(course.id)}" data-module="${esc(module.id)}" aria-label="Edit ${esc(module.title)}" title="Edit module">${ICONS.edit}</button>
@@ -1401,13 +1405,36 @@ function moduleHtml(course, module) {
   </section>`;
 }
 
+function statusControlLabel(entity) {
+  const status = entityStatus(entity);
+  return `${STATUS_LABELS[status]}. Click to set ${STATUS_LABELS[nextStatus(status)]}`;
+}
+
+function statusTickHtml(entity, attrs) {
+  const status = entityStatus(entity);
+  const classes = ['tick', 'tick--status'];
+  if (status === 'almost') classes.push('is-almost');
+  if (status === 'done') classes.push('is-done');
+  const label = statusControlLabel(entity);
+  return `<button class="${classes.join(' ')}" type="button" data-action="cycle-status" ${attrs} title="${esc(label)}" aria-label="${esc(label)}"></button>`;
+}
+
+function statusChipHtml(entity, attrs) {
+  const status = entityStatus(entity);
+  const classes = ['status-chip'];
+  if (status === 'almost') classes.push('is-almost');
+  if (status === 'done') classes.push('is-done');
+  const label = statusControlLabel(entity);
+  return `<button class="${classes.join(' ')}" type="button" data-action="cycle-status" ${attrs} title="${esc(label)}" aria-label="${esc(`${entity.title}. ${label}`)}">${esc(STATUS_LABELS[status])}</button>`;
+}
+
 function topicHtml(course, module, topic) {
-  const completed = topic.done && topic.completedAt
+  const status = entityStatus(topic);
+  const completed = status === 'done' && topic.completedAt
     ? `Checked ${formatShortDate(localDateFromTimestamp(topic.completedAt))}`
-    : topic.done ? 'Checked' : '';
-  return `<div class="topic${topic.done ? ' is-done' : ''}">
-    <input class="tick" type="checkbox" data-action="toggle-topic" data-course="${esc(course.id)}" data-module="${esc(module.id)}" data-topic="${esc(topic.id)}"
-      ${topic.done ? 'checked' : ''} aria-label="Mark ${esc(topic.title)} as ${topic.done ? 'not done' : 'done'}" data-focus="topic-${esc(topic.id)}">
+    : status === 'done' ? 'Checked' : '';
+  return `<div class="topic${status === 'done' ? ' is-done' : ''}">
+    ${statusTickHtml(topic, `data-kind="topic" data-course="${esc(course.id)}" data-module="${esc(module.id)}" data-topic="${esc(topic.id)}" data-focus="status-topic-${esc(topic.id)}"`)}
     <div class="topic-main">
       <div class="topic-title">${esc(topic.title)}</div>
       ${completed ? `<div class="topic-meta">${esc(completed)}</div>` : ''}
@@ -2083,12 +2110,26 @@ function toggleModule(moduleId) {
   renderView('courses');
 }
 
-function toggleTopicCheckbox(input) {
-  const { course, module, topic } = input.dataset;
-  const target = findTopic(course, module, topic);
-  if (!target) return;
-  applyStatus(target, input.checked ? 'done' : 'not-started');
-  commit(`topic-${target.id}`);
+function cycleStatus(d) {
+  let entity = null;
+  let focusKey = '';
+  if (d.kind === 'course') {
+    entity = courseById(d.course) || null;
+    if (entity) focusKey = `status-course-${entity.id}`;
+  } else {
+    const course = courseById(d.course);
+    const module = findModule(course, d.module);
+    if (d.kind === 'module') {
+      entity = module || null;
+      if (entity) focusKey = `status-module-${entity.id}`;
+    } else if (d.kind === 'topic' && module) {
+      entity = findTopic(d.course, d.module, d.topic);
+      if (entity) focusKey = `status-topic-${entity.id}`;
+    }
+  }
+  if (!entity) return;
+  applyStatus(entity, nextStatus(entityStatus(entity)));
+  commit(focusKey);
 }
 
 /* ---------- block dialogs ---------- */
