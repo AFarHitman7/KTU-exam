@@ -1379,9 +1379,12 @@ function courseCardHtml(course, index = 0) {
 function moduleHtml(course, module) {
   const stats = moduleStats(module);
   const collapsed = ui.collapsedModules.has(module.id);
-  const countText = module.topics.length
-    ? stats.almost > 0 ? `${stats.almost} almost` : `${stats.done}/${stats.total}`
-    : '';
+  let countText = '';
+  if (module.topics.length) {
+    if (stats.almost === 0) countText = `${stats.done}/${stats.total}`;
+    else if (stats.done === 0) countText = `${stats.almost} almost`;
+    else countText = `${stats.done}/${stats.total} · ${stats.almost} almost`;
+  }
   return `<section class="module cf-index-card${module.topics.length ? '' : ' module--bare'}" aria-label="${esc(module.title)}">
     <div class="module-head">
       <button class="module-toggle cf-index-tab" type="button" data-action="toggle-module" data-module="${esc(module.id)}" aria-expanded="${!collapsed}" aria-controls="module-${esc(module.id)}">
