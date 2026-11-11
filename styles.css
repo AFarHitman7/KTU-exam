@@ -4230,15 +4230,17 @@ h1 {
   outline-offset: -2px;
 }
 
-@media (max-width: 600px) {
-  .status-grid {
-    max-height: min(44vh, 330px);
-  }
-
+@media (max-width: 720px) {
   .status-row {
     grid-template-columns: 1fr;
     gap: 7px;
     padding: 10px 2px 10px 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .status-grid {
+    max-height: min(44vh, 330px);
   }
 
   .status-choice {

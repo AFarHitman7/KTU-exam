@@ -122,7 +122,10 @@ function esc(value) {
 function focusByKey(key) {
   if (!key) return;
   requestAnimationFrame(() => {
-    const target = document.querySelector(`[data-focus="${String(key).replace(/"/g, '\\"')}"]`);
+    /* Keys repeat across views (a Home row and a Today checkbox share a block
+       id). Only the visible view can hold focus; hidden views are inert. */
+    const root = document.querySelector('.view:not([hidden])') || document;
+    const target = root.querySelector(`[data-focus="${String(key).replace(/"/g, '\\"')}"]`);
     if (target) target.focus({ preventScroll: true });
   });
 }
@@ -473,7 +476,7 @@ function courseStats(course) {
 }
 
 function overallStats() {
-  return statOf(state.courses.flatMap(effectiveUnits));
+  return statOf(state.courses.flatMap((course) => effectiveUnits(course)));
 }
 
 function unitCountLabel(stats) {
@@ -497,7 +500,7 @@ function statusCountText(stats) {
    number twice when every course is bare. */
 function planCountLabel(courseCount, stats) {
   const courses = countLabel(courseCount, 'course');
-  if (stats.unitLabel === 'course' && stats.total === courseCount) return courses;
+  if (stats.total === 0 || (stats.unitLabel === 'course' && stats.total === courseCount)) return courses;
   return `${courses} · ${unitCountLabel(stats)}`;
 }
 
@@ -529,6 +532,32 @@ function ensureOverride(date) {
     }));
   }
   return state.dailyOverrides[date];
+}
+
+/* Merge a moved block into a date's override. ensureOverride may already have
+   copied that weekday's weekly block (same id, or identical fields), so reusing
+   that row keeps the move to one block instead of adding a duplicate. The
+   weekly template itself is never touched. */
+function mergeMovedBlock(targetDate, moved, sourceId) {
+  ensureOverride(targetDate);
+  const destination = state.dailyOverrides[targetDate];
+  const existing = destination.find((item) => (
+    item.id === sourceId
+    || (item.title === moved.title
+      && (item.courseId || '') === (moved.courseId || '')
+      && item.start === moved.start
+      && item.end === moved.end)
+  ));
+  if (!existing) {
+    destination.push(moved);
+    return false;
+  }
+  existing.title = moved.title;
+  existing.courseId = moved.courseId;
+  existing.start = moved.start;
+  existing.end = moved.end;
+  existing.done = Boolean(moved.done);
+  return true;
 }
 
 /* First day after `from` that has any block, earliest block first. */
@@ -1273,7 +1302,7 @@ function renderHome() {
             : '<p class="widget-empty">Nothing scheduled today. A good day for one small block.</p>'}
         <div class="widget-foot">
           <button class="text-btn" type="button" data-action="add-block" data-date="${today}"><span aria-hidden="true">+</span> Add block</button>
-          <span class="widget-note">${blocks.length ? `${doneBlocks}/${blocks.length} done` : 'No blocks'}</span>
+          <span class="widget-note">${blocks.length ? `${doneBlocks}/${blocks.length} done` : ahead ? 'Get ahead' : 'No blocks'}</span>
         </div>
       </section>
 
@@ -1343,7 +1372,7 @@ function renderToday() {
       <div>
         <p class="lede">${esc(lede)}</p>
         <div class="today-meta">
-          <span><b>${checkedToday}</b> ${checkedToday === 1 ? 'check-in' : 'check-ins'} checked today</span>
+          <span><b>${checkedToday}</b> ${checkedToday === 1 ? 'check-in' : 'check-ins'} today</span>
           <span><b>${overall.pct}%</b> complete overall</span>
         </div>
       </div>
@@ -1466,7 +1495,7 @@ function courseCardHtml(course, index = 0) {
   const moduleCount = course.modules.length;
   const unitMeta = moduleCount
     ? `${countLabel(moduleCount, 'module')}${stats.unitLabel === 'module' ? '' : ` · ${unitCountLabel(stats)}`}`
-    : unitCountLabel(stats);
+    : 'Whole course';
   const examDays = course.examDate ? diffDays(course.examDate, todayISO()) : null;
   const examText = course.examDate
     ? `${examDays > 0 ? `${examDays} days` : examDays === 0 ? 'today' : 'past'}`
@@ -1534,7 +1563,7 @@ function moduleHtml(course, module) {
 
 function statusControlLabel(entity) {
   const status = entityStatus(entity);
-  return `${STATUS_LABELS[status]}. Click to set ${STATUS_LABELS[nextStatus(status)]}`;
+  return `${STATUS_LABELS[status]}. Activate to set ${STATUS_LABELS[nextStatus(status)]}`;
 }
 
 function statusTickHtml(entity, attrs) {
@@ -1736,14 +1765,17 @@ function progressHtml() {
   const overall = overallStats();
   const upcoming = upcomingExams();
   const unitWords = `${overall.unitLabel}s`;
+  const summary = overall.total
+    ? `<strong>${progressCountLabel(overall)}</strong> checked across ${countLabel(state.courses.length, 'course')}. ${overall.done === overall.total ? `Every ${overall.unitLabel} is complete.` : 'The rest is just small, repeatable steps.'}`
+    : `<strong>${countLabel(state.courses.length, 'course')}</strong> in the plan. Add a course to start the count.`;
   return `
     <div class="overall-panel st-overall-sticker">
       <div>
-        <p class="overall-label">All ${unitWords} complete</p>
+        <p class="overall-label">${overall.total ? `All ${unitWords} complete` : 'No progress yet'}</p>
         <p class="overall-value">${overall.pct}<sup>%</sup></p>
       </div>
       <div class="overall-copy">
-        <strong>${progressCountLabel(overall)}</strong> checked across ${countLabel(state.courses.length, 'course')}. ${overall.total === 0 ? 'Add a course to start the count.' : overall.done === overall.total ? `Every ${overall.unitLabel} is complete.` : 'The rest is just small, repeatable steps.'}
+        ${summary}
       </div>
       <div class="overall-bar">
         <div class="bar" aria-hidden="true"><span class="bar-fill" style="width:${overall.pct}%"></span></div>
@@ -1777,7 +1809,7 @@ function progressHtml() {
     <section class="section" aria-labelledby="progress-courses">
       <div class="section-head">
         <h2 class="section-title" id="progress-courses">By course</h2>
-        <span class="section-aside">${unitCountLabel(overall)}</span>
+        <span class="section-aside">${overall.total ? unitCountLabel(overall) : countLabel(state.courses.length, 'course')}</span>
       </div>
       ${state.courses.length
         ? `<div class="progress-courses st-sticker-card">
@@ -1819,12 +1851,15 @@ function analyticsHtml() {
   const days = last14Days();
   const unitWords = `${overall.unitLabel}s`;
   const unitTitle = unitWords.charAt(0).toUpperCase() + unitWords.slice(1);
+  const doneCard = overall.total
+    ? stArtStatCard(overall.done, `${unitTitle} done`, `of ${overall.total} total`)
+    : stArtStatCard(0, 'Done', 'Add a course to count');
 
   return `
     <div class="stat-grid st-stat-grid">
       ${stArtStatCard(streak, 'Day streak', 'Consecutive check-ins')}
       ${stArtStatCard(week, 'This week', 'Check-ins')}
-      ${stArtStatCard(overall.done, `${unitTitle} done`, `of ${overall.total} total`)}
+      ${doneCard}
     </div>
 
     <section class="section" aria-labelledby="analytics-activity">
@@ -2374,9 +2409,12 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
             end: fields.end
           };
           state.dailyOverrides[date] = source.filter((item) => item.id !== block.id);
-          ensureOverride(fields.date);
-          state.dailyOverrides[fields.date].push(moved);
+          const merged = mergeMovedBlock(fields.date, moved, block.id);
           commit();
+          if (merged) {
+            toast(`Block moved to ${formatShortDate(fields.date)}. That date already carried the weekly copy, so the move was merged into it.`);
+            return;
+          }
           toast(syncWeekly
             ? `Block moved to ${formatShortDate(fields.date)}. The weekly timetable is unchanged.`
             : `Block moved to ${formatShortDate(fields.date)}.`);
@@ -2460,7 +2498,7 @@ function openMoveDialog(date, blockId) {
       <div class="field">
         <label for="move-date">New date</label>
         <input id="move-date" name="date" type="date" required value="${esc(suggested)}" autofocus>
-        <p class="field-hint">The block leaves ${esc(formatShortDate(date))} and joins the new date. Its done state is kept.</p>
+        <p class="field-hint">The block leaves ${esc(formatShortDate(date))} and joins the new date. Its done state is kept; any weekly copy stays put.</p>
       </div>
     `,
     onSubmit: (formData) => {
@@ -2473,10 +2511,11 @@ function openMoveDialog(date, blockId) {
       if (!sourceBlock) return;
       const moved = { ...sourceBlock, id: uid() };
       state.dailyOverrides[date] = source.filter((item) => item.id !== blockId);
-      ensureOverride(targetDate);
-      state.dailyOverrides[targetDate].push(moved);
+      const merged = mergeMovedBlock(targetDate, moved, blockId);
       commit();
-      toast(`Block moved to ${formatShortDate(targetDate)}.`);
+      toast(merged
+        ? `Block moved to ${formatShortDate(targetDate)}. That date already carried the weekly copy, so the move was merged into it.`
+        : `Block moved to ${formatShortDate(targetDate)}.`);
     }
   });
 }
@@ -2564,7 +2603,7 @@ function openBlockProgressDialog(date, blockId) {
         const unit = level.units.find((item) => (
           item.kind === input.dataset.statusKind && item.entity.id === input.dataset.statusId
         ));
-        if (unit) applyStatus(unit.entity, input.value);
+        if (unit && entityStatus(unit.entity) !== input.value) applyStatus(unit.entity, input.value);
       });
       ensureOverride(date);
       const target = state.dailyOverrides[date].find((item) => item.id === blockId);
@@ -2750,7 +2789,7 @@ async function handleImportFile() {
     const text = await file.text();
     const parsed = JSON.parse(text.replace(/^\uFEFF/, ''));
     const next = normalizeImported(parsed);
-    const stats = statOf(next.courses.flatMap(effectiveUnits));
+    const stats = statOf(next.courses.flatMap((course) => effectiveUnits(course)));
     confirmDialog({
       eyebrow: 'Import JSON',
       title: 'Replace this browser’s data?',
