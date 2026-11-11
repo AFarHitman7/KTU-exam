@@ -1314,7 +1314,7 @@ function renderTimetable() {
         }).join('')}
       </div>
     </div>
-    <p class="timetable-note">Daily changes live in Today or Calendar. They never rewrite this weekly template.</p>
+    <p class="timetable-note">Daily blocks live in Today and Calendar. They only reach this weekly template when you tick the weekly box in the block dialog.</p>
   `;
 }
 
@@ -2176,6 +2176,7 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
   const blocks = blocksForDate(date);
   const block = blockId ? blocks.find((item) => item.id === blockId) : null;
   if (blockId && !block) return;
+  const weekday = weekdayKey(date);
 
   openModal({
     eyebrow: 'Daily schedule',
@@ -2207,12 +2208,21 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
           <input id="block-end" name="end" type="time" value="${esc(block ? block.end : '')}">
         </div>
       </div>
-      <p class="field-hint">This changes only this date. The weekly template stays untouched.</p>
+      <label class="field-check">
+        <input type="checkbox" name="${block ? 'syncWeekly' : 'repeatWeekly'}"${block ? '' : ' checked'}>
+        <span class="field-check-body">
+          <span class="field-check-label">${block ? 'Also update the weekly timetable for' : 'Also add to the weekly timetable for'} <span${block ? '' : ' data-weekday-slot'}>${DAY_LONG[weekday]}</span>s</span>
+          <span class="field-check-hint">${block
+            ? 'The daily edit applies now. The weekly copy changes only when this is ticked, and only if the date stays the same.'
+            : 'Uncheck for a one-off block on this date only.'}</span>
+        </span>
+      </label>
     `,
     onSubmit: (formData) => {
       const fields = validateBlockFields(formData);
       const courseId = String(formData.get('courseId') || '');
       if (block) {
+        const syncWeekly = formData.get('syncWeekly') === 'on';
         if (fields.date === date) {
           ensureOverride(date);
           const target = state.dailyOverrides[date].find((item) => item.id === block.id);
@@ -2221,6 +2231,22 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
           target.courseId = courseId;
           target.start = fields.start;
           target.end = fields.end;
+          if (syncWeekly) {
+            const template = state.weeklyTemplate[weekday];
+            let templateBlock = template.find((item) => item.id === block.id);
+            if (!templateBlock) {
+              templateBlock = { id: block.id, title: fields.title, courseId, start: fields.start, end: fields.end };
+              template.push(templateBlock);
+            } else {
+              templateBlock.title = fields.title;
+              templateBlock.courseId = courseId;
+              templateBlock.start = fields.start;
+              templateBlock.end = fields.end;
+            }
+            commit();
+            toast(`Updated the ${DAY_LONG[weekday]} weekly copy too.`);
+            return;
+          }
         } else {
           ensureOverride(date);
           const source = state.dailyOverrides[date];
@@ -2238,23 +2264,56 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
           ensureOverride(fields.date);
           state.dailyOverrides[fields.date].push(moved);
           commit();
-          toast(`Block moved to ${formatShortDate(fields.date)}.`);
+          toast(syncWeekly
+            ? `Block moved to ${formatShortDate(fields.date)}. The weekly timetable is unchanged.`
+            : `Block moved to ${formatShortDate(fields.date)}.`);
           return;
         }
       } else {
+        const id = uid();
         ensureOverride(fields.date);
         state.dailyOverrides[fields.date].push({
-          id: uid(),
+          id,
           title: fields.title,
           courseId,
           start: fields.start,
           end: fields.end,
           done: false
         });
+        if (formData.get('repeatWeekly') === 'on') {
+          const targetWeekday = weekdayKey(fields.date);
+          const template = state.weeklyTemplate[targetWeekday];
+          const duplicate = template.some((item) => (
+            item.title === fields.title
+            && item.courseId === courseId
+            && item.start === fields.start
+            && item.end === fields.end
+          ));
+          if (duplicate) {
+            commit();
+            toast(`This block is already in the ${DAY_LONG[targetWeekday]} weekly timetable. It was added to this date only.`);
+            return;
+          }
+          template.push({ id, title: fields.title, courseId, start: fields.start, end: fields.end });
+          commit();
+          toast(`Added to ${DAY_LONG[targetWeekday]}s in the weekly timetable too.`);
+          return;
+        }
       }
       commit();
     }
   });
+
+  if (!block) {
+    const dateInput = els.modal.querySelector('#block-date');
+    const weekdaySlot = els.modal.querySelector('[data-weekday-slot]');
+    if (dateInput && weekdaySlot) {
+      dateInput.addEventListener('change', () => {
+        if (!isValidISODate(dateInput.value)) return;
+        weekdaySlot.textContent = DAY_LONG[weekdayKey(dateInput.value)];
+      });
+    }
+  }
 }
 
 function openMoveDialog(date, blockId) {
