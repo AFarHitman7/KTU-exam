@@ -418,9 +418,16 @@ function allTopics(course) {
   return course.modules.flatMap((module) => module.topics);
 }
 
-function effectiveUnits(course) {
+function effectiveUnits(course, { withModule = false } = {}) {
   const topics = allTopics(course);
-  if (topics.length) return topics.map((entity) => ({ entity, kind: 'topic' }));
+  if (topics.length) {
+    if (!withModule) return topics.map((entity) => ({ entity, kind: 'topic' }));
+    const units = [];
+    course.modules.forEach((module) => {
+      module.topics.forEach((entity) => units.push({ entity, kind: 'topic', module }));
+    });
+    return units;
+  }
   if (course.modules.length) return course.modules.map((entity) => ({ entity, kind: 'module' }));
   return [{ entity: course, kind: 'course' }];
 }
@@ -428,18 +435,8 @@ function effectiveUnits(course) {
 /* The same effective-unit rule as progress, with the module kept so the
    finished-block dialog can name where each topic lives. */
 function blockProgressLevel(course) {
-  const topics = allTopics(course);
-  if (topics.length) {
-    const units = [];
-    course.modules.forEach((module) => {
-      module.topics.forEach((entity) => units.push({ entity, kind: 'topic', module }));
-    });
-    return { kind: 'topic', units };
-  }
-  if (course.modules.length) {
-    return { kind: 'module', units: course.modules.map((entity) => ({ entity, kind: 'module' })) };
-  }
-  return { kind: 'course', units: [{ entity: course, kind: 'course' }] };
+  const units = effectiveUnits(course, { withModule: true });
+  return { kind: units[0].kind, units };
 }
 
 function statOf(units) {
@@ -488,6 +485,22 @@ function progressCountLabel(stats) {
   return stats.almost > 0 ? `${phrase} · ${stats.almost} almost` : phrase;
 }
 
+/* A done/total count that never contradicts the percentage beside it:
+   an almost-only row says how many are almost instead of "0/1". */
+function statusCountText(stats) {
+  if (stats.almost === 0) return `${stats.done}/${stats.total}`;
+  if (stats.done === 0) return `${stats.almost} almost`;
+  return `${stats.done}/${stats.total} · ${stats.almost} almost`;
+}
+
+/* A course count plus the effective unit count, without repeating the same
+   number twice when every course is bare. */
+function planCountLabel(courseCount, stats) {
+  const courses = countLabel(courseCount, 'course');
+  if (stats.unitLabel === 'course' && stats.total === courseCount) return courses;
+  return `${courses} · ${unitCountLabel(stats)}`;
+}
+
 function findTopic(courseId, moduleId, topicId) {
   const course = courseById(courseId);
   const module = findModule(course, moduleId);
@@ -530,7 +543,10 @@ function nextScheduledBlock({ from = todayISO(), horizonDays = 30 } = {}) {
 
 /* Copy a future block into today. The source day and weekly template stay put. */
 function startAheadBlock(sourceDate, sourceBlockId) {
-  if (!isValidISODate(sourceDate)) return;
+  if (!isValidISODate(sourceDate)) {
+    toast('That day is no longer valid. Nothing was added.', true);
+    return;
+  }
   const source = blocksForDate(sourceDate).find((block) => block.id === sourceBlockId);
   if (!source) {
     toast('That block is no longer there. Nothing was added.', true);
@@ -937,8 +953,6 @@ function renderAll() {
   document.querySelectorAll('.view').forEach((section) => {
     const active = section.dataset.view === ui.activeView;
     section.hidden = !active;
-    /* One get-ahead prompt lives at a time; drop a stale copy left in a hidden view. */
-    if (!active) section.querySelectorAll('.ahead-card, .ahead-panel').forEach((node) => node.remove());
   });
   document.querySelectorAll('[data-nav]').forEach((button) => {
     const active = button.dataset.nav === ui.activeView;
@@ -1186,7 +1200,7 @@ function renderHome() {
 
   const blockRows = blocks.slice(0, 4).map((block) => {
     const course = courseById(block.courseId);
-    return `<li class="widget-block${block.done ? ' is-done' : ''}">
+    return `<li class="widget-block${block.done ? ' is-done' : ''}" data-focus="block-${esc(block.id)}" tabindex="-1">
       <span class="widget-block-time">${block.start ? esc(block.start) : 'Any'}</span>
       <div class="widget-block-main">
         <div class="widget-block-title">${esc(block.title)}</div>
@@ -1342,7 +1356,7 @@ function renderToday() {
     <section class="section" aria-labelledby="today-study-title">
       <div class="section-head">
         <h2 class="section-title" id="today-study-title">Study blocks</h2>
-        <span class="section-aside">${blocks.length ? `${blocks.filter((block) => block.done).length}/${blocks.length} done` : 'Empty'}</span>
+        <span class="section-aside">${blocks.length ? `${blocks.filter((block) => block.done).length}/${blocks.length} done` : ahead ? 'Get ahead' : 'Empty'}</span>
       </div>
       ${blocks.length
         ? `<div class="panel panel-pad">${scheduleListHtml(blocks, date)}</div>`
@@ -1416,13 +1430,14 @@ function renderCourses() {
   const root = document.getElementById('view-courses');
   const overall = overallStats();
   const examCount = upcomingExams().length;
+  const allDone = overall.total > 0 && overall.done === overall.total;
 
   root.innerHTML = `
     <header class="view-head">
       <div>
         <p class="eyebrow">Curriculum · ${countLabel(state.courses.length, 'course')}</p>
         <h1 id="view-courses-title">Courses</h1>
-        <p class="lede">Course, module, topic. Check a topic when it is truly done.</p>
+        <p class="lede">Course, module, topic. Mark each one Not started, Almost done or Done.</p>
       </div>
       <div class="head-actions">
         <button class="btn btn--primary" type="button" data-action="add-course">${ICONS.plus} Add course</button>
@@ -1432,7 +1447,7 @@ function renderCourses() {
     ${state.courses.length ? `
       <div class="overall-line">
         <strong>${overall.pct}%</strong>
-        <span>${progressCountLabel(overall)} complete</span>
+        <span>${progressCountLabel(overall)}${allDone ? ' complete' : ' checked'}</span>
         <span>·</span>
         <span>${countLabel(examCount, 'exam')} ahead</span>
       </div>
@@ -1493,12 +1508,7 @@ function courseCardHtml(course, index = 0) {
 function moduleHtml(course, module) {
   const stats = moduleStats(module);
   const collapsed = ui.collapsedModules.has(module.id);
-  let countText = '';
-  if (module.topics.length) {
-    if (stats.almost === 0) countText = `${stats.done}/${stats.total}`;
-    else if (stats.done === 0) countText = `${stats.almost} almost`;
-    else countText = `${stats.done}/${stats.total} · ${stats.almost} almost`;
-  }
+  const countText = module.topics.length ? statusCountText(stats) : '';
   return `<section class="module cf-index-card${module.topics.length ? '' : ' module--bare'}" aria-label="${esc(module.title)}">
     <div class="module-head">
       <button class="module-toggle cf-index-tab" type="button" data-action="toggle-module" data-module="${esc(module.id)}" aria-expanded="${!collapsed}" aria-controls="module-${esc(module.id)}">
@@ -1777,7 +1787,7 @@ function progressHtml() {
                 <div class="progress-course-main">
                   <div class="progress-course-name">
                     <strong><span class="row-num" aria-hidden="true">${rowNumber(index)}</span>${esc(course.title)}</strong>
-                    <span class="pct-pill">${stats.done}/${stats.total} · ${stats.pct}%</span>
+                    <span class="pct-pill">${statusCountText(stats)} · ${stats.pct}%</span>
                   </div>
                   <div class="bar" aria-hidden="true"><span class="bar-fill" style="width:${stats.pct}%"></span></div>
                 </div>
@@ -1893,7 +1903,7 @@ function settingsHtml() {
         <div class="settings-card-head">
           <div>
             <h2 id="settings-data">Your data</h2>
-            <p>${countLabel(state.courses.length, 'course')} · ${unitCountLabel(overall)} · saved in this browser</p>
+            <p>${planCountLabel(state.courses.length, overall)} · saved in this browser</p>
           </div>
           <span class="section-aside">JSON</span>
         </div>
@@ -2304,7 +2314,7 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
         <input type="checkbox" name="${block ? 'syncWeekly' : 'repeatWeekly'}"${block ? '' : ' checked'}>
         <span class="field-check-body">
           <span class="field-check-label">${block ? 'Also update the weekly timetable for' : 'Also add to the weekly timetable for'} <span${block ? '' : ' data-weekday-slot'}>${DAY_LONG[weekday]}</span>s</span>
-          <span class="field-check-hint">${block
+          <span class="field-check-hint" data-sync-hint>${block
             ? 'The daily edit applies now. The weekly copy changes only when this is ticked, and only if the date stays the same.'
             : 'Uncheck for a one-off block on this date only.'}</span>
         </span>
@@ -2327,6 +2337,17 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
             const template = state.weeklyTemplate[weekday];
             let templateBlock = template.find((item) => item.id === block.id);
             if (!templateBlock) {
+              const duplicate = template.some((item) => (
+                item.title === fields.title
+                && item.courseId === courseId
+                && item.start === fields.start
+                && item.end === fields.end
+              ));
+              if (duplicate) {
+                commit();
+                toast(`This block is already in the ${DAY_LONG[weekday]} weekly timetable.`);
+                return;
+              }
               templateBlock = { id: block.id, title: fields.title, courseId, start: fields.start, end: fields.end };
               template.push(templateBlock);
             } else {
@@ -2405,6 +2426,23 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
         weekdaySlot.textContent = DAY_LONG[weekdayKey(dateInput.value)];
       });
     }
+  } else {
+    const dateInput = els.modal.querySelector('#block-date');
+    const syncInput = els.modal.querySelector('input[name="syncWeekly"]');
+    const hint = els.modal.querySelector('[data-sync-hint]');
+    if (dateInput && syncInput && hint) {
+      const originalHint = hint.textContent;
+      const updateSyncAvailability = () => {
+        const differs = dateInput.value !== date;
+        syncInput.disabled = differs;
+        if (differs) syncInput.checked = false;
+        hint.textContent = differs
+          ? 'The date changed. The weekly copy stays as it is.'
+          : originalHint;
+      };
+      dateInput.addEventListener('change', updateSyncAvailability);
+      dateInput.addEventListener('input', updateSyncAvailability);
+    }
   }
 }
 
@@ -2480,14 +2518,15 @@ function toggleBlockCheckbox(input) {
 function statusChoiceHtml(unit, kind, focusFirst) {
   const current = entityStatus(unit.entity);
   const name = `progress-${kind}-${unit.entity.id}`;
+  const scope = unit.module ? `${unit.entity.title} · ${unit.module.title}` : unit.entity.title;
   return `<div class="status-row">
     <div class="status-row-main">
       <span class="status-row-title">${esc(unit.entity.title)}</span>
       ${unit.module ? `<span class="status-row-module">${esc(unit.module.title)}</span>` : ''}
     </div>
-    <div class="status-choices" role="radiogroup" aria-label="${esc(unit.entity.title)} status">
+    <div class="status-choices" role="radiogroup" aria-label="${esc(`${scope} status`)}">
       ${STATUSES.map((status) => `<label class="status-choice">
-        <input type="radio" name="${esc(name)}" value="${status}" data-status-kind="${kind}" data-status-id="${esc(unit.entity.id)}"${current === status ? ' checked' : ''}${focusFirst && current === status ? ' autofocus' : ''}>
+        <input type="radio" name="${esc(name)}" value="${status}" data-status-kind="${kind}" data-status-id="${esc(unit.entity.id)}" aria-label="${esc(`${STATUS_LABELS[status]} for ${scope}`)}"${current === status ? ' checked' : ''}${focusFirst && current === status ? ' autofocus' : ''}>
         <span>${esc(STATUS_LABELS[status])}</span>
       </label>`).join('')}
     </div>
@@ -2713,7 +2752,7 @@ async function handleImportFile() {
     confirmDialog({
       eyebrow: 'Import JSON',
       title: 'Replace this browser’s data?',
-      message: `This backup has <strong>${countLabel(next.courses.length, 'course')}</strong>, <strong>${unitCountLabel(stats)}</strong> and <strong>${countLabel(next.exams.length, 'exam')}</strong>. Importing replaces everything currently stored here.`,
+      message: `This backup has <strong>${planCountLabel(next.courses.length, stats)}</strong> and <strong>${countLabel(next.exams.length, 'exam')}</strong>. Importing replaces everything currently stored here.`,
       confirmLabel: 'Replace data',
       onConfirm: () => {
         state = next;

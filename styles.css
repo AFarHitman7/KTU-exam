@@ -1507,7 +1507,8 @@ h1 {
 }
 
 .schedule-row:hover .row-actions,
-.schedule-row:focus-within .row-actions {
+.schedule-row:focus-within .row-actions,
+.schedule-row.is-done .row-actions {
   opacity: 1;
 }
 
@@ -2211,7 +2212,7 @@ h1 {
   align-items: center;
   gap: 6px;
   min-width: 110px;
-  min-height: 22px;
+  min-height: 24px;
   padding: 2px 9px 2px 8px;
   border: 1px solid rgba(138, 74, 94, .42);
   border-radius: var(--pill);
@@ -2586,6 +2587,15 @@ h1 {
 .course .topic .tick:focus-visible {
   outline: 2px solid var(--sakura-ink);
   outline-offset: 2px;
+}
+
+/* Almost and done keep their fill; a soft ring gives hover feedback without
+   touching the check glyph. */
+.course .topic .tick.is-almost:hover,
+.course .topic .tick.is-done:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(138, 74, 94, .12),
+    0 0 0 3px var(--sakura);
 }
 
 /* ---------- Add rows ---------- */
@@ -3878,6 +3888,15 @@ h1 {
   color: var(--ink-2);
 }
 
+.field-check:has(input:disabled) {
+  opacity: .55;
+  cursor: default;
+}
+
+.field-check:has(input:disabled) input {
+  cursor: default;
+}
+
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4205,7 +4224,7 @@ h1 {
   color: var(--paper);
 }
 
-.status-choice:has(input:focus) {
+.status-choice:has(input:focus-visible) {
   box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 3px var(--ink);
   outline: 2px solid var(--ink);
   outline-offset: -2px;
