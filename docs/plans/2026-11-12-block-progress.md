@@ -334,6 +334,54 @@ if Task 1–5 left stale copy.
 
 **Acceptance:** README matches shipped behaviour; no stale claims remain.
 
+### Deferred-minor sweep (carry into Task 6)
+
+These came from task reviews and are cheap, user-visible consistency fixes. Fix them
+in the same task; do not expand into refactors.
+
+- More → Progress → By course pct pill still prints `done/total · pct` and can read
+  `0/1 · 50%` (app.js ~1663). Use the same coherence rule Task 2 applied to module
+  headers: show `done/total` plus `· N almost` only when done > 0, and put the
+  percentage first/second so it is never contradicted by the count.
+- Courses overall line can read `2 almost complete` because it appends "complete" to
+  `progressCountLabel` (app.js ~1323). Reword so an almost count reads naturally.
+- Settings data summary and import confirmation can duplicate the course count when
+  every course is bare (`2 courses · 2 courses`). A bare-course plan should read
+  once, e.g. `2 courses · saved in this browser`, and the import line should not say
+  "2 courses, 2 courses".
+- Edit-append in `openBlockDialog` can create an identical weekly block when the
+  add-flow duplicate guard had skipped one. Apply the same title/course/start/end
+  guard before appending; if identical already exists, do not append and toast that
+  the weekly copy already exists.
+- Done topic ticks have no hover feedback because `.is-done` overrides the hover
+  background. Add a visible hover state for almost and done that does not fight the
+  check glyph.
+- Status chips are 22px tall. Raise the tap target to at least 24px without making
+  the chip visually heavy; keep cycle width stable.
+- `blockProgressLevel` duplicates the effective-unit rule. Dedupe only if it is a
+  small, safe change; otherwise leave it and note why.
+- Radio group accessible names should include the module for topics so duplicate
+  topic titles are distinguishable. Use `:has(input:focus-visible)` for the option
+  ring, with `:focus` as fallback if needed.
+- Done block rows should keep the update-progress action visible (or at least
+  reachable) rather than relying on hover; keep icon buttons at their existing
+  mobile size unless a low-risk 44px adjustment is possible.
+- After `start-ahead` from Home, focus must not fall to the document. Focus the
+  newly copied Home row (add `data-focus` and `tabindex="-1"`) or the Today widget
+  heading.
+- Remove the `renderAll` hidden-view prompt pruning (app.js ~937-942) if it exists
+  only for an unscoped test selector; scope the harness selector instead. Hidden
+  views are already inert and re-render on navigation.
+- `startAheadBlock` should toast on an invalid source date, matching the missing-id
+  branch.
+- Today's "Study blocks" aside should not say `Empty` directly above a get-ahead
+  card; use `Get ahead` or `Nothing today` when the prompt is shown.
+- The weekly sync checkbox is a no-op after the date changes. Disable that row when
+  the dialog's date differs from the opening date, with a short hint.
+
+**Acceptance for the sweep:** each item is either fixed with a visible, low-risk
+change or explicitly left with a one-line reason in the report. No new features.
+
 ## Verification harness
 
 A Playwright script lives in the SDD workspace (not committed) and is run against a
