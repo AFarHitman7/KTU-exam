@@ -12,6 +12,10 @@ const SYNC_META_KEY = 'ktu-sync-meta';
 const GH_API = 'https://api.github.com';
 const GH_HEADERS = { 'X-GitHub-Api-Version': '2022-11-28' };
 
+const STATUSES = ['not-started', 'almost', 'done'];
+const STATUS_LABELS = { 'not-started': 'Not started', almost: 'Almost done', done: 'Done' };
+const STATUS_WEIGHT = { 'not-started': 0, almost: 0.5, done: 1 };
+
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_LONG = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday',
@@ -28,6 +32,7 @@ const ICONS = {
   edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>',
   trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/></svg>',
   move: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  progress: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M7 16V9M12 16V5M17 16v-4"/></svg>',
   chevron: '<svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
 };
 
@@ -117,7 +122,10 @@ function esc(value) {
 function focusByKey(key) {
   if (!key) return;
   requestAnimationFrame(() => {
-    const target = document.querySelector(`[data-focus="${String(key).replace(/"/g, '\\"')}"]`);
+    /* Keys repeat across views (a Home row and a Today checkbox share a block
+       id). Only the visible view can hold focus; hidden views are inert. */
+    const root = document.querySelector('.view:not([hidden])') || document;
+    const target = root.querySelector(`[data-focus="${String(key).replace(/"/g, '\\"')}"]`);
     if (target) target.focus({ preventScroll: true });
   });
 }
@@ -207,6 +215,33 @@ function cleanTimestamp(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function cleanStatus(raw, doneFallback = false) {
+  if (STATUSES.includes(raw)) return raw;
+  return doneFallback ? 'done' : 'not-started';
+}
+
+function entityStatus(entity) {
+  if (entity && STATUSES.includes(entity.status)) return entity.status;
+  return entity && entity.done ? 'done' : 'not-started';
+}
+
+function applyStatus(entity, status) {
+  const next = cleanStatus(status);
+  const wasDone = entityStatus(entity) === 'done';
+  entity.status = next;
+  entity.done = next === 'done';
+  if (next !== 'done') {
+    entity.completedAt = null;
+  } else if (!wasDone || !cleanTimestamp(entity.completedAt)) {
+    entity.completedAt = new Date().toISOString();
+  }
+  return entity;
+}
+
+function nextStatus(status) {
+  return STATUSES[(STATUSES.indexOf(cleanStatus(status)) + 1) % STATUSES.length];
+}
+
 function storageGet(key) {
   try {
     return localStorage.getItem(key);
@@ -269,10 +304,12 @@ function normalizeTopic(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const title = typeof raw.title === 'string' ? raw.title.trim() : '';
   if (!title) return null;
-  const done = Boolean(raw.done);
+  const status = cleanStatus(raw.status, Boolean(raw.done));
+  const done = status === 'done';
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
     title,
+    status,
     done,
     completedAt: done ? cleanTimestamp(raw.completedAt) : null
   };
@@ -282,9 +319,14 @@ function normalizeModule(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const title = typeof raw.title === 'string' ? raw.title.trim() : '';
   if (!title) return null;
+  const status = cleanStatus(raw.status, Boolean(raw.done));
+  const done = status === 'done';
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
     title,
+    status,
+    done,
+    completedAt: done ? cleanTimestamp(raw.completedAt) : null,
     topics: Array.isArray(raw.topics)
       ? raw.topics.map(normalizeTopic).filter(Boolean)
       : []
@@ -295,10 +337,15 @@ function normalizeCourse(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const title = typeof raw.title === 'string' ? raw.title.trim() : '';
   if (!title) return null;
+  const status = cleanStatus(raw.status, Boolean(raw.done));
+  const done = status === 'done';
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
     title,
     examDate: isValidISODate(raw.examDate) ? raw.examDate : '',
+    status,
+    done,
+    completedAt: done ? cleanTimestamp(raw.completedAt) : null,
     modules: Array.isArray(raw.modules)
       ? raw.modules.map(normalizeModule).filter(Boolean)
       : []
@@ -374,28 +421,87 @@ function allTopics(course) {
   return course.modules.flatMap((module) => module.topics);
 }
 
+function effectiveUnits(course, { withModule = false } = {}) {
+  const topics = allTopics(course);
+  if (topics.length) {
+    if (!withModule) return topics.map((entity) => ({ entity, kind: 'topic' }));
+    const units = [];
+    course.modules.forEach((module) => {
+      module.topics.forEach((entity) => units.push({ entity, kind: 'topic', module }));
+    });
+    return units;
+  }
+  if (course.modules.length) return course.modules.map((entity) => ({ entity, kind: 'module' }));
+  return [{ entity: course, kind: 'course' }];
+}
+
+/* The same effective-unit rule as progress, with the module kept so the
+   finished-block dialog can name where each topic lives. */
+function blockProgressLevel(course) {
+  const units = effectiveUnits(course, { withModule: true });
+  return { kind: units[0].kind, units };
+}
+
+function statOf(units) {
+  let done = 0;
+  let almost = 0;
+  let points = 0;
+  units.forEach(({ entity }) => {
+    const status = entityStatus(entity);
+    if (status === 'done') done += 1;
+    else if (status === 'almost') almost += 1;
+    points += STATUS_WEIGHT[status];
+  });
+  const kinds = new Set(units.map((unit) => unit.kind));
+  const total = units.length;
+  return {
+    total,
+    done,
+    almost,
+    points,
+    pct: total ? Math.round((points / total) * 100) : 0,
+    unitLabel: total && kinds.size === 1 ? [...kinds][0] : 'item'
+  };
+}
+
 function moduleStats(module) {
-  const total = module.topics.length;
-  const done = module.topics.filter((topic) => topic.done).length;
-  return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  const units = module.topics.length
+    ? module.topics.map((entity) => ({ entity, kind: 'topic' }))
+    : [{ entity: module, kind: 'module' }];
+  return statOf(units);
 }
 
 function courseStats(course) {
-  const topics = allTopics(course);
-  const total = topics.length;
-  const done = topics.filter((topic) => topic.done).length;
-  return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  return statOf(effectiveUnits(course));
 }
 
 function overallStats() {
-  let total = 0;
-  let done = 0;
-  state.courses.forEach((course) => {
-    const stats = courseStats(course);
-    total += stats.total;
-    done += stats.done;
-  });
-  return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+  return statOf(state.courses.flatMap((course) => effectiveUnits(course)));
+}
+
+function unitCountLabel(stats) {
+  return countLabel(stats.total, stats.unitLabel, `${stats.unitLabel}s`);
+}
+
+function progressCountLabel(stats) {
+  const phrase = `${stats.done} of ${unitCountLabel(stats)}`;
+  return stats.almost > 0 ? `${phrase} · ${stats.almost} almost` : phrase;
+}
+
+/* A done/total count that never contradicts the percentage beside it:
+   an almost-only row says how many are almost instead of "0/1". */
+function statusCountText(stats) {
+  if (stats.almost === 0) return `${stats.done}/${stats.total}`;
+  if (stats.done === 0) return `${stats.almost} almost`;
+  return `${stats.done}/${stats.total} · ${stats.almost} almost`;
+}
+
+/* A course count plus the effective unit count, without repeating the same
+   number twice when every course is bare. */
+function planCountLabel(courseCount, stats) {
+  const courses = countLabel(courseCount, 'course');
+  if (stats.total === 0 || (stats.unitLabel === 'course' && stats.total === courseCount)) return courses;
+  return `${courses} · ${unitCountLabel(stats)}`;
 }
 
 function findTopic(courseId, moduleId, topicId) {
@@ -426,6 +532,67 @@ function ensureOverride(date) {
     }));
   }
   return state.dailyOverrides[date];
+}
+
+/* Merge a moved block into a date's override. ensureOverride may already have
+   copied that weekday's weekly block (same id, or identical fields), so reusing
+   that row keeps the move to one block instead of adding a duplicate. The
+   weekly template itself is never touched. */
+function mergeMovedBlock(targetDate, moved, sourceId) {
+  ensureOverride(targetDate);
+  const destination = state.dailyOverrides[targetDate];
+  const existing = destination.find((item) => (
+    item.id === sourceId
+    || (item.title === moved.title
+      && (item.courseId || '') === (moved.courseId || '')
+      && item.start === moved.start
+      && item.end === moved.end)
+  ));
+  if (!existing) {
+    destination.push(moved);
+    return false;
+  }
+  existing.title = moved.title;
+  existing.courseId = moved.courseId;
+  existing.start = moved.start;
+  existing.end = moved.end;
+  existing.done = Boolean(moved.done);
+  return true;
+}
+
+/* First day after `from` that has any block, earliest block first. */
+function nextScheduledBlock({ from = todayISO(), horizonDays = 30 } = {}) {
+  for (let offset = 1; offset <= horizonDays; offset += 1) {
+    const date = addDaysISO(from, offset);
+    const blocks = sortBlocks(blocksForDate(date));
+    if (blocks.length) return { date, block: blocks[0], blocks };
+  }
+  return null;
+}
+
+/* Copy a future block into today. The source day and weekly template stay put. */
+function startAheadBlock(sourceDate, sourceBlockId) {
+  if (!isValidISODate(sourceDate)) {
+    toast('That day is no longer valid. Nothing was added.', true);
+    return;
+  }
+  const source = blocksForDate(sourceDate).find((block) => block.id === sourceBlockId);
+  if (!source) {
+    toast('That block is no longer there. Nothing was added.', true);
+    return;
+  }
+  const today = todayISO();
+  const copy = {
+    id: uid(),
+    title: source.title,
+    courseId: source.courseId,
+    start: source.start,
+    end: source.end,
+    done: false
+  };
+  ensureOverride(today).push(copy);
+  commit(`block-${copy.id}`);
+  toast(`"${source.title}" added to today — you are a day ahead.`);
 }
 
 function allExams() {
@@ -459,14 +626,17 @@ function nearestExam() {
   return upcomingExams()[0] || null;
 }
 
-function completedTopics() {
+function completedUnits() {
   const items = [];
   state.courses.forEach((course) => {
-    course.modules.forEach((module) => {
-      module.topics.forEach((topic) => {
-        if (topic.done && topic.completedAt) {
-          items.push({ course, module, topic, date: localDateFromTimestamp(topic.completedAt), at: topic.completedAt });
-        }
+    effectiveUnits(course).forEach((unit) => {
+      if (entityStatus(unit.entity) !== 'done' || !unit.entity.completedAt) return;
+      items.push({
+        course,
+        entity: unit.entity,
+        kind: unit.kind,
+        date: localDateFromTimestamp(unit.entity.completedAt),
+        at: unit.entity.completedAt
       });
     });
   });
@@ -474,11 +644,11 @@ function completedTopics() {
 }
 
 function completedOn(date) {
-  return completedTopics().filter((item) => item.date === date).length;
+  return completedUnits().filter((item) => item.date === date).length;
 }
 
 function streakDays() {
-  const days = new Set(completedTopics().map((item) => item.date).filter(Boolean));
+  const days = new Set(completedUnits().map((item) => item.date).filter(Boolean));
   if (!days.size) return 0;
   let cursor = todayISO();
   if (!days.has(cursor)) cursor = addDaysISO(cursor, -1);
@@ -495,7 +665,7 @@ function weekCompletions() {
   const mondayOffset = (now.getDay() + 6) % 7;
   const monday = addDaysISO(todayISO(), -mondayOffset);
   const counts = {};
-  completedTopics().forEach((item) => {
+  completedUnits().forEach((item) => {
     if (!item.date) return;
     counts[item.date] = (counts[item.date] || 0) + 1;
   });
@@ -509,7 +679,7 @@ function weekCompletions() {
 function last14Days() {
   const today = todayISO();
   const counts = {};
-  completedTopics().forEach((item) => {
+  completedUnits().forEach((item) => {
     if (item.date) counts[item.date] = (counts[item.date] || 0) + 1;
   });
   const days = [];
@@ -678,6 +848,9 @@ function handleClick(event) {
     case 'toggle-module':
       toggleModule(d.module);
       break;
+    case 'cycle-status':
+      cycleStatus(d);
+      break;
     case 'add-topic':
       openTopicDialog(d.course, d.module);
       break;
@@ -698,6 +871,12 @@ function handleClick(event) {
       break;
     case 'move-block':
       openMoveDialog(d.date, d.id);
+      break;
+    case 'update-block-progress':
+      openBlockProgressDialog(d.date, d.id);
+      break;
+    case 'start-ahead':
+      startAheadBlock(d.date, d.id);
       break;
     case 'add-template-block':
       openTemplateBlockDialog({ day: d.day || weekdayKey(todayISO()) });
@@ -766,13 +945,8 @@ function handleClick(event) {
 
 function handleChange(event) {
   const target = event.target;
-  if (!target.matches('input[type="checkbox"][data-action]')) return;
-
-  if (target.dataset.action === 'toggle-topic') {
-    toggleTopicCheckbox(target);
-  } else if (target.dataset.action === 'toggle-block') {
-    toggleBlockCheckbox(target);
-  }
+  if (!target.matches('input[type="checkbox"][data-action="toggle-block"]')) return;
+  toggleBlockCheckbox(target);
 }
 
 function handleInput(event) {
@@ -806,7 +980,8 @@ function renderAll() {
   if (ui.activeView === 'more') document.body.dataset.sub = ui.moreTab || 'progress';
   else delete document.body.dataset.sub;
   document.querySelectorAll('.view').forEach((section) => {
-    section.hidden = section.dataset.view !== ui.activeView;
+    const active = section.dataset.view === ui.activeView;
+    section.hidden = !active;
   });
   document.querySelectorAll('[data-nav]').forEach((button) => {
     const active = button.dataset.nav === ui.activeView;
@@ -901,6 +1076,7 @@ function scheduleListHtml(blocks, date) {
           <div class="block-course">${course ? esc(course.title) : 'Study block'}</div>
         </div>
         <div class="row-actions">
+          ${done && course ? `<button class="icon-btn" type="button" data-action="update-block-progress" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Update progress" title="Update progress">${ICONS.progress}</button>` : ''}
           <button class="icon-btn" type="button" data-action="move-block" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Move ${title} to another day" title="Move">${ICONS.move}</button>
           <button class="icon-btn" type="button" data-action="edit-block" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Edit ${title}" title="Edit">${ICONS.edit}</button>
           <button class="icon-btn icon-btn--danger" type="button" data-action="delete-block" data-date="${esc(date)}" data-id="${esc(block.id)}" aria-label="Delete ${title}" title="Delete">${ICONS.trash}</button>
@@ -908,6 +1084,52 @@ function scheduleListHtml(blocks, date) {
       </li>`;
     }).join('')}
   </ul>`;
+}
+
+function aheadFacts(ahead) {
+  const { block, date } = ahead;
+  return {
+    block,
+    course: courseById(block.courseId),
+    when: `${DAY_LONG[weekdayKey(date)]} · ${formatShortDate(date)}`,
+    time: block.start ? `${block.start}${block.end ? `–${block.end}` : ''}` : 'Any time'
+  };
+}
+
+function aheadCardHtml(ahead, date) {
+  const { block, course, when, time } = aheadFacts(ahead);
+  return `<div class="ahead-card">
+    <span class="ahead-tape" aria-hidden="true"></span>
+    <div class="ahead-main">
+      <p class="ahead-kicker">Nothing today · get ahead</p>
+      <h3 class="ahead-title">${esc(block.title)}</h3>
+      <p class="ahead-meta">
+        <span>${esc(when)}</span>
+        <span aria-hidden="true">·</span>
+        <span>${esc(time)}</span>
+        <span aria-hidden="true">·</span>
+        <span>${esc(course ? course.title : 'Study block')}</span>
+      </p>
+    </div>
+    <div class="ahead-actions">
+      <button class="btn btn--primary" type="button" data-action="start-ahead" data-date="${esc(ahead.date)}" data-id="${esc(block.id)}">Start it today</button>
+      <button class="btn" type="button" data-action="add-block" data-date="${esc(date)}">${ICONS.plus} Add a block</button>
+      <button class="btn" type="button" data-nav="timetable">Open timetable</button>
+    </div>
+  </div>`;
+}
+
+function aheadPanelHtml(ahead) {
+  const { block, course, when, time } = aheadFacts(ahead);
+  return `<div class="ahead-panel">
+    <span class="ahead-tape" aria-hidden="true"></span>
+    <p class="ahead-kicker">Nothing today · get ahead</p>
+    <div class="ahead-panel-main">
+      <strong class="ahead-panel-title">${esc(block.title)}</strong>
+      <span class="ahead-panel-meta">${esc(when)} · ${esc(time)}${course ? ` · ${esc(course.title)}` : ''}</span>
+    </div>
+    <button class="btn btn--sm ahead-panel-action" type="button" data-action="start-ahead" data-date="${esc(ahead.date)}" data-id="${esc(block.id)}">Start it today</button>
+  </div>`;
 }
 
 function examRowHtml(exam) {
@@ -966,6 +1188,7 @@ function renderHome() {
   const overall = overallStats();
   const exams = upcomingExams();
   const blocks = sortBlocks(blocksForDate(today));
+  const ahead = blocks.length ? null : nextScheduledBlock();
   const doneBlocks = blocks.filter((block) => block.done).length;
   const streak = streakDays();
   const week = weekCompletions();
@@ -1006,7 +1229,7 @@ function renderHome() {
 
   const blockRows = blocks.slice(0, 4).map((block) => {
     const course = courseById(block.courseId);
-    return `<li class="widget-block${block.done ? ' is-done' : ''}">
+    return `<li class="widget-block${block.done ? ' is-done' : ''}" data-focus="block-${esc(block.id)}" tabindex="-1">
       <span class="widget-block-time">${block.start ? esc(block.start) : 'Any'}</span>
       <div class="widget-block-main">
         <div class="widget-block-title">${esc(block.title)}</div>
@@ -1022,7 +1245,7 @@ function renderHome() {
         <p class="eyebrow">${esc(formatLongDate(today))}</p>
         <h1 id="view-home-title">${greetingLabel()}</h1>
         <p class="lede">${overall.total
-          ? `${overall.done} of ${overall.total} topics done. Here is the plan, at a glance.`
+          ? `${progressCountLabel(overall)} done. Here is the plan, at a glance.`
           : 'A quiet place to see your whole plan at once.'}</p>
       </div>
       <div class="head-actions home-actions">${countdownPillHtml()}</div>
@@ -1055,7 +1278,7 @@ function renderHome() {
           <div class="st-mini-progress-top">
             <p class="widget-big" aria-label="${overall.pct}% complete">${overall.pct}<sup>%</sup></p>
             <div class="st-mini-progress-copy">
-              <strong>${overall.done} of ${overall.total} topics</strong>
+              <strong>${progressCountLabel(overall)}</strong>
               <span>${countLabel(state.courses.length, 'course')} in the plan</span>
             </div>
           </div>
@@ -1074,10 +1297,12 @@ function renderHome() {
         ${widgetHeadHtml({ id: 'home-today-title', title: 'Today', nav: 'today' })}
         ${blocks.length
           ? `<ul class="widget-list">${blockRows}</ul>`
-          : '<p class="widget-empty">Nothing scheduled today. A good day for one small block.</p>'}
+          : ahead
+            ? aheadPanelHtml(ahead)
+            : '<p class="widget-empty">Nothing scheduled today. A good day for one small block.</p>'}
         <div class="widget-foot">
           <button class="text-btn" type="button" data-action="add-block" data-date="${today}"><span aria-hidden="true">+</span> Add block</button>
-          <span class="widget-note">${blocks.length ? `${doneBlocks}/${blocks.length} done` : 'No blocks'}</span>
+          <span class="widget-note">${blocks.length ? `${doneBlocks}/${blocks.length} done` : ahead ? 'Get ahead' : 'No blocks'}</span>
         </div>
       </section>
 
@@ -1088,8 +1313,8 @@ function renderHome() {
           <div class="mini-stat"><b>${week}</b><span>This week</span></div>
           <div class="mini-stat"><b>${overall.done}</b><span>Done</span></div>
         </div>
-        <div class="activity st-stampcard mini-stamp-strip" role="img" aria-label="Topic check-ins over the last 14 days">
-          ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'topic')}">
+        <div class="activity st-stampcard mini-stamp-strip" role="img" aria-label="Check-ins over the last 14 days">
+          ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'check-in')}">
             <div class="activity-cell st-stamp${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}">${day.day}</div>
             <div class="activity-label">${day.weekday}</div>
           </div>`).join('')}
@@ -1109,6 +1334,7 @@ function renderToday() {
   const root = document.getElementById('view-today');
   const date = todayISO();
   const blocks = blocksForDate(date);
+  const ahead = blocks.length ? null : nextScheduledBlock();
   const exam = nearestExam();
   const overall = overallStats();
   const checkedToday = completedOn(date);
@@ -1118,7 +1344,9 @@ function renderToday() {
 
   let lede;
   if (!blocks.length) {
-    lede = 'Nothing scheduled today. Add a block, or shape the week in Timetable.';
+    lede = ahead
+      ? 'Nothing scheduled today. The next block is ready when you are.'
+      : 'Nothing scheduled today. Add a block, or shape the week in Timetable.';
   } else if (allDone) {
     lede = `${countLabel(blocks.length, 'block')} planned. All done for today.`;
   } else {
@@ -1144,7 +1372,7 @@ function renderToday() {
       <div>
         <p class="lede">${esc(lede)}</p>
         <div class="today-meta">
-          <span><b>${checkedToday}</b> ${checkedToday === 1 ? 'topic' : 'topics'} checked today</span>
+          <span><b>${checkedToday}</b> ${checkedToday === 1 ? 'check-in' : 'check-ins'} today</span>
           <span><b>${overall.pct}%</b> complete overall</span>
         </div>
       </div>
@@ -1157,16 +1385,18 @@ function renderToday() {
     <section class="section" aria-labelledby="today-study-title">
       <div class="section-head">
         <h2 class="section-title" id="today-study-title">Study blocks</h2>
-        <span class="section-aside">${blocks.length ? `${blocks.filter((block) => block.done).length}/${blocks.length} done` : 'Empty'}</span>
+        <span class="section-aside">${blocks.length ? `${blocks.filter((block) => block.done).length}/${blocks.length} done` : ahead ? 'Get ahead' : 'Empty'}</span>
       </div>
       ${blocks.length
         ? `<div class="panel panel-pad">${scheduleListHtml(blocks, date)}</div>`
-        : emptyHtml({
-          title: 'No study blocks today',
-          copy: 'Add a one-off block for today, or set a weekly rhythm you can keep.',
-          actions: `<button class="btn btn--primary" type="button" data-action="add-block" data-date="${date}">${ICONS.plus} Add a block</button>
-            <button class="btn" type="button" data-nav="timetable">Open timetable</button>`
-        })}
+        : ahead
+          ? aheadCardHtml(ahead, date)
+          : emptyHtml({
+            title: 'No study blocks today',
+            copy: 'Add a one-off block for today, or set a weekly rhythm you can keep.',
+            actions: `<button class="btn btn--primary" type="button" data-action="add-block" data-date="${date}">${ICONS.plus} Add a block</button>
+              <button class="btn" type="button" data-nav="timetable">Open timetable</button>`
+          })}
     </section>
   `;
 }
@@ -1219,7 +1449,7 @@ function renderTimetable() {
         }).join('')}
       </div>
     </div>
-    <p class="timetable-note">Daily changes live in Today or Calendar. They never rewrite this weekly template.</p>
+    <p class="timetable-note">Daily blocks live in Today and Calendar. They only reach this weekly template when you tick the weekly box in the block dialog.</p>
   `;
 }
 
@@ -1229,13 +1459,14 @@ function renderCourses() {
   const root = document.getElementById('view-courses');
   const overall = overallStats();
   const examCount = upcomingExams().length;
+  const allDone = overall.total > 0 && overall.done === overall.total;
 
   root.innerHTML = `
     <header class="view-head">
       <div>
         <p class="eyebrow">Curriculum · ${countLabel(state.courses.length, 'course')}</p>
         <h1 id="view-courses-title">Courses</h1>
-        <p class="lede">Course, module, topic. Check a topic when it is truly done.</p>
+        <p class="lede">Course, module, topic. Mark each one Not started, Almost done or Done.</p>
       </div>
       <div class="head-actions">
         <button class="btn btn--primary" type="button" data-action="add-course">${ICONS.plus} Add course</button>
@@ -1245,7 +1476,7 @@ function renderCourses() {
     ${state.courses.length ? `
       <div class="overall-line">
         <strong>${overall.pct}%</strong>
-        <span>${overall.done} of ${overall.total} topics complete</span>
+        <span>${progressCountLabel(overall)}${allDone ? ' complete' : overall.almost > 0 ? '' : ' checked'}</span>
         <span>·</span>
         <span>${countLabel(examCount, 'exam')} ahead</span>
       </div>
@@ -1261,6 +1492,10 @@ function renderCourses() {
 
 function courseCardHtml(course, index = 0) {
   const stats = courseStats(course);
+  const moduleCount = course.modules.length;
+  const unitMeta = moduleCount
+    ? `${countLabel(moduleCount, 'module')}${stats.unitLabel === 'module' ? '' : ` · ${unitCountLabel(stats)}`}`
+    : 'Whole course';
   const examDays = course.examDate ? diffDays(course.examDate, todayISO()) : null;
   const examText = course.examDate
     ? `${examDays > 0 ? `${examDays} days` : examDays === 0 ? 'today' : 'past'}`
@@ -1277,7 +1512,8 @@ function courseCardHtml(course, index = 0) {
       <header class="course-head">
         <div class="course-head-main">
           <div class="course-meta">
-            <span class="cf-folder-count">${countLabel(course.modules.length, 'module')} · ${countLabel(stats.total, 'topic')}</span>
+            <span class="cf-folder-count">${unitMeta}</span>
+            ${moduleCount ? '' : statusChipHtml(course, `data-kind="course" data-course="${esc(course.id)}" data-focus="status-course-${esc(course.id)}"`)}
             ${course.examDate ? `<span class="exam-chip">Exam ${esc(formatShortDate(course.examDate))}${examText ? ` · ${esc(examText)}` : ''}</span>` : ''}
           </div>
         </div>
@@ -1301,13 +1537,15 @@ function courseCardHtml(course, index = 0) {
 function moduleHtml(course, module) {
   const stats = moduleStats(module);
   const collapsed = ui.collapsedModules.has(module.id);
-  return `<section class="module cf-index-card" aria-label="${esc(module.title)}">
+  const countText = module.topics.length ? statusCountText(stats) : '';
+  return `<section class="module cf-index-card${module.topics.length ? '' : ' module--bare'}" aria-label="${esc(module.title)}">
     <div class="module-head">
       <button class="module-toggle cf-index-tab" type="button" data-action="toggle-module" data-module="${esc(module.id)}" aria-expanded="${!collapsed}" aria-controls="module-${esc(module.id)}">
         ${ICONS.chevron}
         <span class="module-title">${esc(module.title)}</span>
-        <span class="module-count">${stats.done}/${stats.total}</span>
+        ${countText ? `<span class="module-count">${countText}</span>` : ''}
       </button>
+      ${module.topics.length ? '' : statusChipHtml(module, `data-kind="module" data-course="${esc(course.id)}" data-module="${esc(module.id)}" data-focus="status-module-${esc(module.id)}"`)}
       <span class="module-pct">${stats.pct}%</span>
       <div class="module-actions">
         <button class="icon-btn" type="button" data-action="edit-module" data-course="${esc(course.id)}" data-module="${esc(module.id)}" aria-label="Edit ${esc(module.title)}" title="Edit module">${ICONS.edit}</button>
@@ -1323,13 +1561,36 @@ function moduleHtml(course, module) {
   </section>`;
 }
 
+function statusControlLabel(entity) {
+  const status = entityStatus(entity);
+  return `${STATUS_LABELS[status]}. Activate to set ${STATUS_LABELS[nextStatus(status)]}`;
+}
+
+function statusTickHtml(entity, attrs) {
+  const status = entityStatus(entity);
+  const classes = ['tick', 'tick--status'];
+  if (status === 'almost') classes.push('is-almost');
+  if (status === 'done') classes.push('is-done');
+  const label = statusControlLabel(entity);
+  return `<button class="${classes.join(' ')}" type="button" data-action="cycle-status" ${attrs} title="${esc(label)}" aria-label="${esc(label)}"></button>`;
+}
+
+function statusChipHtml(entity, attrs) {
+  const status = entityStatus(entity);
+  const classes = ['status-chip'];
+  if (status === 'almost') classes.push('is-almost');
+  if (status === 'done') classes.push('is-done');
+  const label = statusControlLabel(entity);
+  return `<button class="${classes.join(' ')}" type="button" data-action="cycle-status" ${attrs} title="${esc(label)}" aria-label="${esc(`${entity.title}. ${label}`)}">${esc(STATUS_LABELS[status])}</button>`;
+}
+
 function topicHtml(course, module, topic) {
-  const completed = topic.done && topic.completedAt
+  const status = entityStatus(topic);
+  const completed = status === 'done' && topic.completedAt
     ? `Checked ${formatShortDate(localDateFromTimestamp(topic.completedAt))}`
-    : topic.done ? 'Checked' : '';
-  return `<div class="topic${topic.done ? ' is-done' : ''}">
-    <input class="tick" type="checkbox" data-action="toggle-topic" data-course="${esc(course.id)}" data-module="${esc(module.id)}" data-topic="${esc(topic.id)}"
-      ${topic.done ? 'checked' : ''} aria-label="Mark ${esc(topic.title)} as ${topic.done ? 'not done' : 'done'}" data-focus="topic-${esc(topic.id)}">
+    : status === 'done' ? 'Checked' : '';
+  return `<div class="topic${status === 'done' ? ' is-done' : ''}">
+    ${statusTickHtml(topic, `data-kind="topic" data-course="${esc(course.id)}" data-module="${esc(module.id)}" data-topic="${esc(topic.id)}" data-focus="status-topic-${esc(topic.id)}"`)}
     <div class="topic-main">
       <div class="topic-title">${esc(topic.title)}</div>
       ${completed ? `<div class="topic-meta">${esc(completed)}</div>` : ''}
@@ -1503,18 +1764,22 @@ function renderMore() {
 function progressHtml() {
   const overall = overallStats();
   const upcoming = upcomingExams();
+  const unitWords = `${overall.unitLabel}s`;
+  const summary = overall.total
+    ? `<strong>${progressCountLabel(overall)}</strong> checked across ${countLabel(state.courses.length, 'course')}. ${overall.done === overall.total ? `Every ${overall.unitLabel} is complete.` : 'The rest is just small, repeatable steps.'}`
+    : `<strong>${countLabel(state.courses.length, 'course')}</strong> in the plan. Add a course to start the count.`;
   return `
     <div class="overall-panel st-overall-sticker">
       <div>
-        <p class="overall-label">All topics complete</p>
+        <p class="overall-label">${overall.total ? `All ${unitWords} complete` : 'No progress yet'}</p>
         <p class="overall-value">${overall.pct}<sup>%</sup></p>
       </div>
       <div class="overall-copy">
-        <strong>${overall.done} of ${overall.total} topics</strong> checked across ${countLabel(state.courses.length, 'course')}. ${overall.total === 0 ? 'Add a course to start the count.' : overall.done === overall.total ? 'Every topic is complete.' : 'The rest is just small, repeatable steps.'}
+        ${summary}
       </div>
       <div class="overall-bar">
         <div class="bar" aria-hidden="true"><span class="bar-fill" style="width:${overall.pct}%"></span></div>
-        <p>Progress is saved from topic check-ins, not from a timer.</p>
+        <p>Progress is saved from check-ins, not from a timer.</p>
       </div>
     </div>
 
@@ -1544,7 +1809,7 @@ function progressHtml() {
     <section class="section" aria-labelledby="progress-courses">
       <div class="section-head">
         <h2 class="section-title" id="progress-courses">By course</h2>
-        <span class="section-aside">${countLabel(overall.total, 'topic')}</span>
+        <span class="section-aside">${overall.total ? unitCountLabel(overall) : countLabel(state.courses.length, 'course')}</span>
       </div>
       ${state.courses.length
         ? `<div class="progress-courses st-sticker-card">
@@ -1554,7 +1819,7 @@ function progressHtml() {
                 <div class="progress-course-main">
                   <div class="progress-course-name">
                     <strong><span class="row-num" aria-hidden="true">${rowNumber(index)}</span>${esc(course.title)}</strong>
-                    <span class="pct-pill">${stats.done}/${stats.total} · ${stats.pct}%</span>
+                    <span class="pct-pill">${statusCountText(stats)} · ${stats.pct}%</span>
                   </div>
                   <div class="bar" aria-hidden="true"><span class="bar-fill" style="width:${stats.pct}%"></span></div>
                 </div>
@@ -1584,12 +1849,17 @@ function analyticsHtml() {
   const week = weekCompletions();
   const overall = overallStats();
   const days = last14Days();
+  const unitWords = `${overall.unitLabel}s`;
+  const unitTitle = unitWords.charAt(0).toUpperCase() + unitWords.slice(1);
+  const doneCard = overall.total
+    ? stArtStatCard(overall.done, `${unitTitle} done`, `of ${overall.total} total`)
+    : stArtStatCard(0, 'Done', 'Add a course to count');
 
   return `
     <div class="stat-grid st-stat-grid">
       ${stArtStatCard(streak, 'Day streak', 'Consecutive check-ins')}
-      ${stArtStatCard(week, 'This week', 'Topics checked')}
-      ${stArtStatCard(overall.done, 'Topics done', `of ${overall.total} total`)}
+      ${stArtStatCard(week, 'This week', 'Check-ins')}
+      ${doneCard}
     </div>
 
     <section class="section" aria-labelledby="analytics-activity">
@@ -1597,8 +1867,8 @@ function analyticsHtml() {
         <h2 class="section-title" id="analytics-activity">Last 14 days</h2>
         <span class="section-aside">${week} this week</span>
       </div>
-      <div class="activity st-stampcard" role="img" aria-label="Topic check-ins over the last 14 days">
-        ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'topic')}">
+      <div class="activity st-stampcard" role="img" aria-label="Check-ins over the last 14 days">
+        ${days.map((day) => `<div class="activity-day" title="${esc(formatLongDate(day.date))} · ${countLabel(day.count, 'check-in')}">
           <div class="activity-cell st-stamp${day.count ? ' has' : ''}${day.isToday ? ' is-today' : ''}">${day.day}</div>
           <div class="activity-label">${day.weekday}</div>
         </div>`).join('')}
@@ -1623,7 +1893,7 @@ function analyticsHtml() {
               </div>`;
             }).join('')}
           </div>`
-        : `<div class="cal-empty">Add a course and check topics to see subject progress. <button class="text-btn" type="button" data-action="add-course">Add a course</button></div>`}
+        : `<div class="cal-empty">Add a course and mark progress to see subject progress. <button class="text-btn" type="button" data-action="add-course">Add a course</button></div>`}
     </section>
   `;
 }
@@ -1659,7 +1929,7 @@ function syncStatusHtml() {
 
 function settingsHtml() {
   const pat = storageGet(PAT_KEY) || '';
-  const topics = overallStats();
+  const overall = overallStats();
   const disabled = ui.syncBusy ? ' disabled' : '';
 
   return `
@@ -1668,7 +1938,7 @@ function settingsHtml() {
         <div class="settings-card-head">
           <div>
             <h2 id="settings-data">Your data</h2>
-            <p>${countLabel(state.courses.length, 'course')} · ${countLabel(topics.total, 'topic')} · saved in this browser</p>
+            <p>${planCountLabel(state.courses.length, overall)} · saved in this browser</p>
           </div>
           <span class="section-aside">JSON</span>
         </div>
@@ -1850,7 +2120,15 @@ function openCourseDialog(courseId = null) {
         course.title = title;
         course.examDate = examDate;
       } else {
-        state.courses.push({ id: uid(), title, examDate, modules: [] });
+        state.courses.push({
+          id: uid(),
+          title,
+          examDate,
+          status: 'not-started',
+          done: false,
+          completedAt: null,
+          modules: []
+        });
       }
       commit();
     }
@@ -1879,7 +2157,14 @@ function openModuleDialog(courseId, moduleId = null) {
       if (module) {
         module.title = title;
       } else {
-        course.modules.push({ id: uid(), title, topics: [] });
+        course.modules.push({
+          id: uid(),
+          title,
+          status: 'not-started',
+          done: false,
+          completedAt: null,
+          topics: []
+        });
       }
       commit();
     }
@@ -1909,7 +2194,7 @@ function openTopicDialog(courseId, moduleId, topicId = null) {
       if (topic) {
         topic.title = title;
       } else {
-        module.topics.push({ id: uid(), title, done: false, completedAt: null });
+        module.topics.push({ id: uid(), title, status: 'not-started', done: false, completedAt: null });
       }
       commit();
     }
@@ -1919,11 +2204,11 @@ function openTopicDialog(courseId, moduleId, topicId = null) {
 function askDeleteCourse(courseId) {
   const course = courseById(courseId);
   if (!course) return;
-  const stats = courseStats(course);
+  const topicCount = allTopics(course).length;
   confirmDialog({
     eyebrow: 'Delete course',
     title: `Delete “${course.title}”?`,
-    message: `This removes <strong>${countLabel(course.modules.length, 'module')}</strong>, <strong>${countLabel(stats.total, 'topic')}</strong> and any linked exams. Timetable blocks for this course will stay, without a course label. This cannot be undone.`,
+    message: `This removes <strong>${countLabel(course.modules.length, 'module')}</strong>, <strong>${countLabel(topicCount, 'topic')}</strong> and any linked exams. Timetable blocks for this course will stay, without a course label. This cannot be undone.`,
     confirmLabel: 'Delete course',
     onConfirm: () => {
       state.courses = state.courses.filter((item) => item.id !== courseId);
@@ -1948,11 +2233,12 @@ function askDeleteModule(courseId, moduleId) {
   const course = courseById(courseId);
   const module = findModule(course, moduleId);
   if (!course || !module) return;
-  const stats = moduleStats(module);
   confirmDialog({
     eyebrow: course.title,
     title: `Delete “${module.title}”?`,
-    message: `This removes the module and its <strong>${countLabel(stats.total, 'topic')}</strong>. This cannot be undone.`,
+    message: module.topics.length
+      ? `This removes the module and its <strong>${countLabel(module.topics.length, 'topic')}</strong>. This cannot be undone.`
+      : 'This removes the module. This cannot be undone.',
     confirmLabel: 'Delete module',
     onConfirm: () => {
       course.modules = course.modules.filter((item) => item.id !== moduleId);
@@ -1986,13 +2272,26 @@ function toggleModule(moduleId) {
   renderView('courses');
 }
 
-function toggleTopicCheckbox(input) {
-  const { course, module, topic } = input.dataset;
-  const target = findTopic(course, module, topic);
-  if (!target) return;
-  target.done = input.checked;
-  target.completedAt = input.checked ? new Date().toISOString() : null;
-  commit(`topic-${target.id}`);
+function cycleStatus(d) {
+  let entity = null;
+  let focusKey = '';
+  if (d.kind === 'course') {
+    entity = courseById(d.course) || null;
+    if (entity) focusKey = `status-course-${entity.id}`;
+  } else {
+    const course = courseById(d.course);
+    const module = findModule(course, d.module);
+    if (d.kind === 'module') {
+      entity = module || null;
+      if (entity) focusKey = `status-module-${entity.id}`;
+    } else if (d.kind === 'topic' && module) {
+      entity = findTopic(d.course, d.module, d.topic);
+      if (entity) focusKey = `status-topic-${entity.id}`;
+    }
+  }
+  if (!entity) return;
+  applyStatus(entity, nextStatus(entityStatus(entity)));
+  commit(focusKey);
 }
 
 /* ---------- block dialogs ---------- */
@@ -2014,6 +2313,7 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
   const blocks = blocksForDate(date);
   const block = blockId ? blocks.find((item) => item.id === blockId) : null;
   if (blockId && !block) return;
+  const weekday = weekdayKey(date);
 
   openModal({
     eyebrow: 'Daily schedule',
@@ -2045,12 +2345,21 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
           <input id="block-end" name="end" type="time" value="${esc(block ? block.end : '')}">
         </div>
       </div>
-      <p class="field-hint">This changes only this date. The weekly template stays untouched.</p>
+      <label class="field-check">
+        <input type="checkbox" name="${block ? 'syncWeekly' : 'repeatWeekly'}"${block ? '' : ' checked'}>
+        <span class="field-check-body">
+          <span class="field-check-label">${block ? 'Also update the weekly timetable for' : 'Also add to the weekly timetable for'} <span${block ? '' : ' data-weekday-slot'}>${DAY_LONG[weekday]}</span>s</span>
+          <span class="field-check-hint" data-sync-hint>${block
+            ? 'The daily edit applies now. The weekly copy changes only when this is ticked, and only if the date stays the same.'
+            : 'Uncheck for a one-off block on this date only.'}</span>
+        </span>
+      </label>
     `,
     onSubmit: (formData) => {
       const fields = validateBlockFields(formData);
       const courseId = String(formData.get('courseId') || '');
       if (block) {
+        const syncWeekly = formData.get('syncWeekly') === 'on';
         if (fields.date === date) {
           ensureOverride(date);
           const target = state.dailyOverrides[date].find((item) => item.id === block.id);
@@ -2059,6 +2368,33 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
           target.courseId = courseId;
           target.start = fields.start;
           target.end = fields.end;
+          if (syncWeekly) {
+            const template = state.weeklyTemplate[weekday];
+            let templateBlock = template.find((item) => item.id === block.id);
+            if (!templateBlock) {
+              const duplicate = template.some((item) => (
+                item.title === fields.title
+                && item.courseId === courseId
+                && item.start === fields.start
+                && item.end === fields.end
+              ));
+              if (duplicate) {
+                commit();
+                toast(`This block is already in the ${DAY_LONG[weekday]} weekly timetable. The daily edit was saved.`);
+                return;
+              }
+              templateBlock = { id: block.id, title: fields.title, courseId, start: fields.start, end: fields.end };
+              template.push(templateBlock);
+            } else {
+              templateBlock.title = fields.title;
+              templateBlock.courseId = courseId;
+              templateBlock.start = fields.start;
+              templateBlock.end = fields.end;
+            }
+            commit();
+            toast(`Updated the ${DAY_LONG[weekday]} weekly copy too.`);
+            return;
+          }
         } else {
           ensureOverride(date);
           const source = state.dailyOverrides[date];
@@ -2073,26 +2409,81 @@ function openBlockDialog({ date = todayISO(), blockId = null } = {}) {
             end: fields.end
           };
           state.dailyOverrides[date] = source.filter((item) => item.id !== block.id);
-          ensureOverride(fields.date);
-          state.dailyOverrides[fields.date].push(moved);
+          const merged = mergeMovedBlock(fields.date, moved, block.id);
           commit();
-          toast(`Block moved to ${formatShortDate(fields.date)}.`);
+          if (merged) {
+            toast(`Block moved to ${formatShortDate(fields.date)}. That date already carried the weekly copy, so the move was merged into it.`);
+            return;
+          }
+          toast(syncWeekly
+            ? `Block moved to ${formatShortDate(fields.date)}. The weekly timetable is unchanged.`
+            : `Block moved to ${formatShortDate(fields.date)}.`);
           return;
         }
       } else {
+        const id = uid();
         ensureOverride(fields.date);
         state.dailyOverrides[fields.date].push({
-          id: uid(),
+          id,
           title: fields.title,
           courseId,
           start: fields.start,
           end: fields.end,
           done: false
         });
+        if (formData.get('repeatWeekly') === 'on') {
+          const targetWeekday = weekdayKey(fields.date);
+          const template = state.weeklyTemplate[targetWeekday];
+          const duplicate = template.some((item) => (
+            item.title === fields.title
+            && item.courseId === courseId
+            && item.start === fields.start
+            && item.end === fields.end
+          ));
+          if (duplicate) {
+            commit();
+            toast(`This block is already in the ${DAY_LONG[targetWeekday]} weekly timetable. It was added to this date only.`);
+            return;
+          }
+          template.push({ id, title: fields.title, courseId, start: fields.start, end: fields.end });
+          commit();
+          toast(`Added to ${DAY_LONG[targetWeekday]}s in the weekly timetable too.`);
+          return;
+        }
       }
       commit();
     }
   });
+
+  if (!block) {
+    const dateInput = els.modal.querySelector('#block-date');
+    const weekdaySlot = els.modal.querySelector('[data-weekday-slot]');
+    if (dateInput && weekdaySlot) {
+      dateInput.addEventListener('change', () => {
+        if (!isValidISODate(dateInput.value)) return;
+        weekdaySlot.textContent = DAY_LONG[weekdayKey(dateInput.value)];
+      });
+    }
+  } else {
+    const dateInput = els.modal.querySelector('#block-date');
+    const syncInput = els.modal.querySelector('input[name="syncWeekly"]');
+    const hint = els.modal.querySelector('[data-sync-hint]');
+    if (dateInput && syncInput && hint) {
+      const originalHint = hint.textContent;
+      let restoreChecked = syncInput.checked;
+      const updateSyncAvailability = () => {
+        const differs = dateInput.value !== date;
+        if (differs && !syncInput.disabled) restoreChecked = syncInput.checked;
+        syncInput.disabled = differs;
+        syncInput.checked = differs ? false : restoreChecked;
+        hint.textContent = differs
+          ? 'The date changed. The weekly copy stays as it is.'
+          : originalHint;
+      };
+      dateInput.addEventListener('change', updateSyncAvailability);
+      dateInput.addEventListener('input', updateSyncAvailability);
+    }
+  }
 }
 
 function openMoveDialog(date, blockId) {
@@ -2107,7 +2498,7 @@ function openMoveDialog(date, blockId) {
       <div class="field">
         <label for="move-date">New date</label>
         <input id="move-date" name="date" type="date" required value="${esc(suggested)}" autofocus>
-        <p class="field-hint">The block leaves ${esc(formatShortDate(date))} and joins the new date. Its done state is kept.</p>
+        <p class="field-hint">The block leaves ${esc(formatShortDate(date))} and joins the new date. Its done state is kept; any weekly copy stays put.</p>
       </div>
     `,
     onSubmit: (formData) => {
@@ -2120,10 +2511,11 @@ function openMoveDialog(date, blockId) {
       if (!sourceBlock) return;
       const moved = { ...sourceBlock, id: uid() };
       state.dailyOverrides[date] = source.filter((item) => item.id !== blockId);
-      ensureOverride(targetDate);
-      state.dailyOverrides[targetDate].push(moved);
+      const merged = mergeMovedBlock(targetDate, moved, blockId);
       commit();
-      toast(`Block moved to ${formatShortDate(targetDate)}.`);
+      toast(merged
+        ? `Block moved to ${formatShortDate(targetDate)}. That date already carried the weekly copy, so the move was merged into it.`
+        : `Block moved to ${formatShortDate(targetDate)}.`);
     }
   });
 }
@@ -2154,6 +2546,72 @@ function toggleBlockCheckbox(input) {
   if (!block) return;
   block.done = input.checked;
   commit(`block-${block.id}`);
+  if (!input.checked) return;
+  if (!courseById(block.courseId)) {
+    toast('Block finished. Link a course to track progress.');
+    return;
+  }
+  openBlockProgressDialog(date, block.id);
+}
+
+/* ---------- finished-block progress dialog ---------- */
+
+function statusChoiceHtml(unit, kind, focusFirst) {
+  const current = entityStatus(unit.entity);
+  const name = `progress-${kind}-${unit.entity.id}`;
+  const scope = unit.module ? `${unit.entity.title} · ${unit.module.title}` : unit.entity.title;
+  return `<div class="status-row">
+    <div class="status-row-main">
+      <span class="status-row-title">${esc(unit.entity.title)}</span>
+      ${unit.module ? `<span class="status-row-module">${esc(unit.module.title)}</span>` : ''}
+    </div>
+    <div class="status-choices" role="radiogroup" aria-label="${esc(`${scope} status`)}">
+      ${STATUSES.map((status) => `<label class="status-choice">
+        <input type="radio" name="${esc(name)}" value="${status}" data-status-kind="${kind}" data-status-id="${esc(unit.entity.id)}" aria-label="${esc(`${STATUS_LABELS[status]} for ${scope}`)}"${current === status ? ' checked' : ''}${focusFirst && current === status ? ' autofocus' : ''}>
+        <span>${esc(STATUS_LABELS[status])}</span>
+      </label>`).join('')}
+    </div>
+  </div>`;
+}
+
+function openBlockProgressDialog(date, blockId) {
+  if (!isValidISODate(date)) return;
+  const block = blocksForDate(date).find((item) => item.id === blockId);
+  if (!block) return;
+  const course = courseById(block.courseId);
+  if (!course) return;
+
+  const level = blockProgressLevel(course);
+  const noun = level.kind === 'topic' ? 'Topics' : level.kind === 'module' ? 'Modules' : 'Course';
+  const rows = level.units
+    .map((unit, index) => statusChoiceHtml(unit, level.kind, index === 0))
+    .join('');
+
+  openModal({
+    eyebrow: `${course.title} · ${formatShortDate(date)}`,
+    title: 'What did you cover?',
+    submitLabel: 'Save progress',
+    body: `
+      <p class="modal-copy">Mark what you covered in this block. Partial work counts as <strong>Almost done</strong>, so it still moves ${esc(course.title)} forward.</p>
+      <div class="status-grid-wrap">
+        <p class="status-grid-label">${noun} in ${esc(course.title)}</p>
+        <div class="status-grid">${rows}</div>
+      </div>
+    `,
+    onSubmit: (formData, form) => {
+      form.querySelectorAll('input[type="radio"][data-status-id]:checked').forEach((input) => {
+        const unit = level.units.find((item) => (
+          item.kind === input.dataset.statusKind && item.entity.id === input.dataset.statusId
+        ));
+        if (unit && entityStatus(unit.entity) !== input.value) applyStatus(unit.entity, input.value);
+      });
+      ensureOverride(date);
+      const target = state.dailyOverrides[date].find((item) => item.id === blockId);
+      if (target) target.done = true;
+      commit();
+      toast(`Progress saved for ${course.title}.`);
+    }
+  });
 }
 
 /* ---------- timetable template dialogs ---------- */
@@ -2331,11 +2789,11 @@ async function handleImportFile() {
     const text = await file.text();
     const parsed = JSON.parse(text.replace(/^\uFEFF/, ''));
     const next = normalizeImported(parsed);
-    const stats = next.courses.reduce((total, course) => total + allTopics(course).length, 0);
+    const stats = statOf(next.courses.flatMap((course) => effectiveUnits(course)));
     confirmDialog({
       eyebrow: 'Import JSON',
       title: 'Replace this browser’s data?',
-      message: `This backup has <strong>${countLabel(next.courses.length, 'course')}</strong>, <strong>${countLabel(stats, 'topic')}</strong> and <strong>${countLabel(next.exams.length, 'exam')}</strong>. Importing replaces everything currently stored here.`,
+      message: `This backup has <strong>${planCountLabel(next.courses.length, stats)}</strong> and <strong>${countLabel(next.exams.length, 'exam')}</strong>. Importing replaces everything currently stored here.`,
       confirmLabel: 'Replace data',
       onConfirm: () => {
         state = next;
